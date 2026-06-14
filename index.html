@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta charset="UTF-8">
+    <title>BomBa BomBa - Tela</title>
+    <style>
+        body { background-color: #1a1a24; background-size: cover; background-position: center center; background-repeat: no-repeat; height: 100vh; width: 100vw; overflow: hidden; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; transition: background 0.5s ease;}
+
+        .aguardando { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #fff; font-size: 2rem; font-weight: bold; text-shadow: 0 0 10px black; z-index: 10;}
+
+        #overlay-countdown {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.7); z-index: 1000;
+            display: none; justify-content: center; align-items: center;
+            font-size: 15rem; font-weight: 900; color: #f39c12;
+            text-shadow: 0 0 40px #f39c12, 0 0 10px #fff;
+            animation: pulseCount 0.5s infinite alternate;
+            text-transform: uppercase;
+        }
+        @keyframes pulseCount { from { transform: scale(1); } to { transform: scale(1.15); } }
+
+        #game-view { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; overflow: hidden; }
+        #game-zoom-area { width: 100%; height: 100%; position: absolute; top: 0; left: 0; transform-origin: top center; transition: transform 0.2s ease-out; }
+        .roda-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;}
+        .player-roda-container { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; transition: all 0.5s ease; }
+        .avatar-roda { width: 55px; height: 55px; border-radius: 50%; border: 3px solid #555; object-fit: cover; background-color: #222; }
+
+        .nome-roda-container { display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.8); border: 1px solid #30363d; border-radius: 8px; padding: 2px 6px; margin-top: 5px; }
+        .nome-texto { color: white; font-size: 0.7rem; font-weight: bold; max-width: 60px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+        .ticket-badge { color: gold; font-size: 0.75rem; font-weight: bold; margin-left: 4px; flex-shrink: 0; text-shadow: 0 0 5px gold; }
+        .colete-badge { color: #3498db; font-size: 0.75rem; font-weight: bold; margin-left: 4px; flex-shrink: 0; text-shadow: 0 0 5px #3498db; }
+
+
+        .centro-bomba { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 10; display: flex; flex-direction: column; align-items: center; transition: transform 0.1s ease-out;}
+        .silaba-display { background: rgba(9, 50, 125, 0.85); padding: 5px 25px; border-radius: 12px; font-size: 1.8rem; font-weight: 900; letter-spacing: 2px; box-shadow: 0 4px 10px rgba(0,0,0,0.6); text-transform: uppercase; border: 2px solid #3498db; backdrop-filter: blur(5px); z-index: 100; margin-bottom: 12px; }
+        .jogador-ativo-container { position: relative; width: 180px; height: 180px; display: flex; justify-content: center; align-items: center; }
+        .img-wrapper { width: 140px; height: 140px; border-radius: 50%; overflow: hidden; position: relative; z-index: 2; background-color: #222; display: flex; justify-content: center; align-items: center; }
+        .img-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+        .progress-ring { position: absolute; top: 0; left: 0; transform: rotate(-90deg); z-index: 1; }
+        .progress-ring__circle { transition: stroke-dashoffset 1s linear, stroke 0.5s ease; stroke-dasharray: 502; stroke-dashoffset: 0; fill: transparent; stroke-width: 12; stroke-linecap: round; stroke: #f39c12; filter: drop-shadow(0 0 10px rgba(243, 156, 18, 0.8)); }
+
+        .nick-ativo-container { display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.8); padding: 5px 20px; border-radius: 20px; border: 2px solid #30363d; margin-top: -15px; position: relative; z-index: 10; }
+        .nick-ativo-texto { font-size: 1.4rem; font-weight: bold; max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: white; }
+        .nick-ativo-ticket { font-size: 1.4rem; font-weight: bold; color: gold; margin-left: 8px; flex-shrink: 0; text-shadow: 0 0 10px gold; }
+
+        .tempo-restante { font-size: 3.5rem; color: #f39c12; font-weight: 900; margin-top: 10px; text-shadow: 0 0 15px rgba(243, 156, 18, 0.8);}
+        .explosao-overlay { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: radial-gradient(circle, rgba(255,71,87,0.8) 0%, rgba(0,0,0,0) 80%); opacity: 0; pointer-events: none; z-index: 50; transition: opacity 0.2s;}
+        .avatar-boom-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.1); font-size: 180px; z-index: 999; pointer-events: none; animation: centerBoom 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; filter: drop-shadow(0 0 30px rgba(255, 69, 0, 1)); }
+        @keyframes centerBoom { 0% { transform: translate(-50%, -50%) scale(0.1) rotate(-20deg); opacity: 1; } 50% { transform: translate(-50%, -50%) scale(2.5) rotate(10deg); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(3.5) rotate(20deg); opacity: 0; } }
+
+        .tela-vencedor { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px); z-index: 900; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.5s ease; }
+        .tela-vencedor.show { opacity: 1; pointer-events: auto; }
+        .titulo-vencedor { font-size: 5rem; color: gold; font-weight: 900; margin-bottom: 20px; text-shadow: 0 0 20px gold, 0 0 40px darkgoldenrod; text-transform: uppercase; animation: bounce 1s infinite alternate; }
+        .vencedor-avatar { width: 180px; height: 180px; border-radius: 50%; border: 8px solid gold; box-shadow: 0 0 30px gold; object-fit: cover; margin-bottom: 15px; }
+        .vencedor-nick { font-size: 2.5rem; font-weight: bold; background: #111; padding: 10px 30px; border-radius: 20px; border: 2px solid gold; margin-bottom: 30px; }
+        .vencedor-stats { display: flex; gap: 40px; text-align: center; }
+        .stat-box { background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.2); min-width: 200px; max-width: 400px; }
+        .stat-box h3 { margin: 0 0 10px 0; color: #2ed573; font-size: 1.5rem; }
+        .stat-box p { margin: 0; font-size: 1.2rem; font-weight: bold; word-wrap: break-word; }
+        @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-10px); } }
+
+        .aviso-popup { position: absolute; top: 75%; left: 50%; transform: translate(-50%, -50%); background: rgba(255, 71, 87, 0.95); color: white; padding: 15px 40px; border-radius: 12px; font-size: 2rem; font-weight: 900; letter-spacing: 2px; z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.2s; border: 3px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-transform: uppercase; }
+
+        #ranking-view { display: none; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; flex-direction: column; align-items: center; justify-content: center; z-index: 800; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); }
+        .ranking-title { font-size: 4rem; font-weight: 900; margin-bottom: 10px; text-transform: uppercase; text-shadow: 0 0 20px rgba(255,255,255,0.5); display: flex; align-items: center; gap: 20px; }
+        .ranking-subtitle { font-size: 1.5rem; font-weight: bold; color: #f39c12; margin-bottom: 25px; background: rgba(0,0,0,0.8); padding: 5px 20px; border-radius: 20px; border: 1px solid #f39c12;}
+        .ranking-list { background: rgba(20, 25, 35, 0.9); border: 2px solid #444; border-radius: 20px; width: 80%; max-width: 800px; padding: 20px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
+        .rank-item { display: flex; align-items: center; background: rgba(255,255,255,0.05); padding: 15px 25px; border-radius: 12px; border-left: 5px solid transparent; transition: transform 0.2s; }
+        .rank-item:hover { transform: scale(1.02); background: rgba(255,255,255,0.1); }
+        .rank-pos { font-size: 2rem; font-weight: 900; width: 50px; text-align: center; color: #888; }
+        .rank-item.pos-1 { border-left-color: gold; background: linear-gradient(90deg, rgba(255,215,0,0.2) 0%, rgba(0,0,0,0) 100%); }
+        .rank-item.pos-1 .rank-pos { color: gold; }
+        .rank-item.pos-2 { border-left-color: silver; }
+        .rank-item.pos-2 .rank-pos { color: silver; }
+        .rank-item.pos-3 { border-left-color: #cd7f32; }
+        .rank-item.pos-3 .rank-pos { color: #cd7f32; }
+        .rank-name { flex: 1; font-size: 1.8rem; font-weight: bold; margin-left: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .rank-score { font-size: 2rem; font-weight: 900; color: #f39c12; }
+    </style>
+</head>
+<body>
+
+    <div id="overlay-countdown">5</div>
+
+    <div class="explosao-overlay" id="flash-explosao"></div>
+    <div class="aviso-popup" id="aviso-popup">JÁ USADA!</div>
+
+    <div class="tela-vencedor" id="tela-vencedor">
+        <div class="titulo-vencedor">🏆 CAMPEÃO! 🏆</div>
+        <img id="vencedor-avatar" class="vencedor-avatar" src="">
+        <div class="vencedor-nick" id="vencedor-nick">...</div>
+        <div class="vencedor-stats">
+            <div class="stat-box">
+                <h3 style="color: #f39c12;">⏱️ Tempo Sobrevivido</h3>
+                <p id="vencedor-tempo">0s</p>
+            </div>
+            <div class="stat-box">
+                <h3>🧠 Palavras Acertadas</h3>
+                <p id="vencedor-palavras" style="font-size: 1rem; color: #ccc;">Nenhuma</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="ranking-view">
+        <div class="ranking-title" id="ranking-title">🏆 TOP JOGADORES 🏆</div>
+        <div class="ranking-subtitle" id="ranking-subtitle">PERÍODO</div>
+        <div class="ranking-list" id="ranking-list"></div>
+    </div>
+
+    <div id="game-view">
+        <div id="game-zoom-area"> <div class="aguardando" id="msg-aguardando">Aguardando jogadores... Envie um presente para entrar!</div>
+
+            <svg class="roda-container" id="svg-seta" style="z-index: 1;">
+                <defs>
+                    <marker id="arrowhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#f39c12" />
+                    </marker>
+                </defs>
+                <line id="linha-seta" x1="0" y1="0" x2="0" y2="0" stroke="#f39c12" stroke-width="4" marker-end="url(#arrowhead)" visibility="hidden"/>
+            </svg>
+
+            <div class="roda-container" id="roda" style="z-index: 5;"></div>
+
+            <div class="centro-bomba" id="centro" style="display:none;">
+                <div class="silaba-display" id="silaba-texto" style="display:none;">BRE</div>
+                <div class="jogador-ativo-container">
+                    <svg class="progress-ring" width="180" height="180">
+                        <circle class="progress-ring__circle" cx="90" cy="90" r="80" />
+                    </svg>
+                    <div class="img-wrapper">
+                        <img id="avatar-ativo" src="">
+                    </div>
+                </div>
+
+                <div class="nick-ativo-container" id="nick-ativo-caixa">
+                    <div class="nick-ativo-texto" id="nick-ativo">...</div>
+                    <div class="nick-ativo-ticket" id="ticket-ativo"></div>
+                </div>
+
+                <div class="tempo-restante" id="tempo">30s</div>
+            </div>
+        </div> </div>
+
+    <button onclick="document.getElementById('hud-janela-painel').style.display='flex'" style="position: absolute; top: 15px; left: 15px; z-index: 1500; background: #3498db; color: white; border: 2px solid #fff; padding: 10px 15px; font-weight: bold; border-radius: 5px; cursor: pointer; box-shadow: 0 0 10px rgba(52, 152, 219, 0.8);">⚙️ PAINEL</button>
+
+    <div id="hud-janela-painel" style="position: absolute; top: 60px; left: 15px; width: calc(100vw - 30px); max-width: 450px; height: 85vh; background: rgba(13, 17, 23, 0.95); border: 2px solid #3498db; border-radius: 10px; z-index: 2000; display: none; flex-direction: column; overflow: hidden; box-shadow: 0 0 20px rgba(0,0,0,0.8);">
+        <div style="background: #3498db; padding: 10px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 5px;">
+            <span>⚙️ Controle Host</span>
+            <div style="display: flex; gap: 5px;">
+                <button onclick="window.open('Painel_do_Host.html', '_blank'); document.getElementById('hud-janela-painel').style.display='none';" style="background: #2c3e50; border: none; color: white; padding: 5px 10px; cursor: pointer; border-radius: 5px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">↗️ Abrir Aba</button>
+                <button onclick="document.getElementById('hud-janela-painel').style.display='none'" style="background: #ff4757; border: none; color: white; padding: 5px 15px; cursor: pointer; border-radius: 5px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">X</button>
+            </div>
+        </div>
+        <iframe src="Painel_do_Host.html" style="width: 100%; height: 100%; border: none;"></iframe>
+    </div>
+
+    <script>
+        // ==========================================
+        // 🧠 PARTE 1: DICIONÁRIO DUPLO E MATEMÁTICA
+        // ==========================================
+        let dicionarioGlobal = new Set(["ABRE", "FEBRE", "BREVE", "COBRE", "SOBRE"]);
+        let dicionarioBaseSilabas = [];
+
+        // 1. Camada Web: Tenta baixar o palavras.txt do GitHub invisivelmente
+        async function carregarDicionario() {
+            try {
+                let res = await fetch('palavras.txt');
+                if (res.ok) {
+                    let text = await res.text();
+                    let lines = text.split('\n');
+                    for (let line of lines) {
+                        let p = line.split('/')[0].trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z]/g, "");
+                        if (p.length >= 2) { dicionarioGlobal.add(p); if (p.length >= 4) dicionarioBaseSilabas.push(p); }
+                    }
+                    console.log("✅ Dicionário Web carregado! Palavras: " + dicionarioGlobal.size);
+                }
+            } catch(e) { console.log("⚠️ palavras.txt web não encontrado. Usando base local."); }
+        }
+        carregarDicionario();
+
+        // 2. Camada Host: Verifica se o Host adicionou a palavra no Painel
+        function palavraExiste(p) {
+            if (dicionarioGlobal.has(p)) return true;
+            let extras = localStorage.getItem('bombaPalavrasExtras'); // Vamos adicionar esse campo no painel na Fase 3
+            if (extras) {
+                let limpo = extras.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
+                return limpo.includes(p);
+            }
+            return false;
+        }
+
+        function gerarMatematica() {
+            let ops = ['+', '-', '*', '/'];
+            let op = ops[Math.floor(Math.random() * ops.length)];
+            let exp, res;
+            if (op === '+') { let a = Math.floor(Math.random() * 50)+1; let b = Math.floor(Math.random() * 50)+1; exp = `${a} + ${b}`; res = a+b; }
+            else if (op === '-') { let a = Math.floor(Math.random() * 50)+20; let b = Math.floor(Math.random() * (a-1))+1; exp = `${a} - ${b}`; res = a-b; }
+            else if (op === '*') { let a = Math.floor(Math.random() * 10)+2; let b = Math.floor(Math.random() * 10)+2; exp = `${a} × ${b}`; res = a*b; }
+            else if (op === '/') { let b = Math.floor(Math.random() * 10)+2; let r = Math.floor(Math.random() * 10)+2; let a = b*r; exp = `${a} ÷ ${b}`; res = r; }
+            return { exp, res: res.toString() };
+        }
+
+        // ==========================================
+        // ⚙️ O MOTOR DO JOGO E VARIÁVEIS BASE
+        // ==========================================
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let lastTempo = -1;
+        let posicoesFixas = {};
+        let jogoEstavaAtivo = false;
+
+        let jogo = {
+            ativo: false, iniciando: false, jogadores_roda: [], dados_jogadores: {},
+            turno_atual: 0, silaba_atual: "", tipo_desafio: "silaba", resposta_matematica: "",
+            palavras_usadas: [], tempo_restante: 0, tempo_inicio: 0, config: {}
+        };
+
+        function atualizarConfig() { let cfgStr = localStorage.getItem('bombaConfig'); if(cfgStr) jogo.config = JSON.parse(cfgStr); }
+        atualizarConfig(); setInterval(atualizarConfig, 1000);
+
+        function sortearDesafio() {
+            let modo = jogo.config.modo_jogo || "silabas";
+            if (modo === "matematica" || (modo === "misto" && Math.random() > 0.5)) {
+                jogo.tipo_desafio = "matematica";
+                let math = gerarMatematica();
+                jogo.silaba_atual = math.exp;
+                jogo.resposta_matematica = math.res;
+            } else {
+                jogo.tipo_desafio = "silaba";
+                if (dicionarioBaseSilabas.length > 0) {
+                    let p = dicionarioBaseSilabas[Math.floor(Math.random() * dicionarioBaseSilabas.length)];
+                    let t = (p.length >= 5 && Math.random() > 0.5) ? 3 : 2;
+                    let ini = Math.floor(Math.random() * (p.length - t + 1));
+                    jogo.silaba_atual = p.substring(ini, ini + t);
+                } else { jogo.silaba_atual = "BA"; }
+            }
+            jogo.palavras_usadas = [];
+            jogo.tempo_restante = jogo.config.tempo_rodada || 30;
+        }
+
+        function proximoTurno() {
+            if (jogo.jogadores_roda.length <= 1) return;
+            jogo.turno_atual = (jogo.turno_atual + 1) % jogo.jogadores_roda.length;
+            sortearDesafio();
+            atualizarTela();
+        }
+
+        function finalizarJogo() {
+            jogo.ativo = false; jogo.iniciando = false;
+            let vencedor = jogo.jogadores_roda.length > 0 ? jogo.jogadores_roda[0] : null;
+            if (vencedor) {
+                let acertos = jogo.dados_jogadores[vencedor].acertos_lista || [];
+                exibirVencedor({ nick: vencedor, avatar: jogo.dados_jogadores[vencedor].avatar, tempo: Math.floor(Date.now()/1000) - jogo.tempo_inicio, palavras: acertos });
+                jogo.jogadores_roda = [vencedor];
+            } else { jogo.jogadores_roda = []; }
+            jogo.turno_atual = 0;
+            atualizarTela();
+        }
+
+        const audioExplosaoMp3 = new Audio('explosion.mp3');
+        audioExplosaoMp3.volume = 0.08;
+
+        // --- NOVO: LÓGICA DO ZOOM MANUAL ---
+        let zoomLevel = 1.0;
+        window.addEventListener('wheel', (e) => {
+            if (e.ctrlKey || document.getElementById('game-view').style.display !== 'none') {
+                e.preventDefault();
+                const zoomArea = document.getElementById('game-zoom-area');
+                if (e.deltaY < 0) { zoomLevel = Math.min(zoomLevel + 0.05, 2.0); } // Zoom In (Max 2x)
+                else { zoomLevel = Math.max(zoomLevel - 0.05, 0.4); } // Zoom Out (Min 0.4x)
+                zoomArea.style.transform = `scale(${zoomLevel})`;
+            }
+        }, { passive: false });
+        // -----------------------------------
+
+        function playTick(freq) {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+            osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function playError() {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'square';
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
+            osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.2);
+        }
+
+        function playVictory() {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime;
+            [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0, now + i * 0.15);
+                gain.gain.linearRampToValueAtTime(0.3, now + i * 0.15 + 0.05);
+                gain.gain.linearRampToValueAtTime(0, now + i * 0.15 + 0.4);
+                osc.start(now + i * 0.15); osc.stop(now + i * 0.15 + 0.4);
+            });
+        }
+
+        function playExplosionFlash() {
+            const flash = document.getElementById('flash-explosao');
+            flash.style.opacity = '1';
+            setTimeout(() => flash.style.opacity = '0', 300);
+        }
+
+        function spawnCenterExplosion() {
+            audioExplosaoMp3.currentTime = 0;
+            audioExplosaoMp3.play().catch(e => console.log("Erro mp3: ", e));
+            const boom = document.createElement('div');
+            boom.className = 'avatar-boom-center';
+            boom.innerText = '💥';
+            document.body.appendChild(boom);
+            const centro = document.getElementById('centro');
+            centro.style.transform = "translate(-50%, -50%) scale(1.15)";
+            setTimeout(() => centro.style.transform = "translate(-50%, -50%) scale(1)", 150);
+            setTimeout(() => boom.remove(), 800);
+        }
+
+        function exibirVencedor(dados) {
+            playVictory();
+            document.getElementById('game-view').style.display = 'block';
+            document.getElementById('ranking-view').style.display = 'none';
+            document.getElementById('centro').style.display = 'none';
+            document.getElementById('silaba-texto').style.display = 'none';
+            document.getElementById('msg-aguardando').style.display = 'none';
+            document.getElementById('linha-seta').setAttribute('visibility', 'hidden');
+            document.getElementById('vencedor-avatar').src = dados.avatar;
+            document.getElementById('vencedor-nick').innerText = dados.nick;
+            const min = Math.floor(dados.tempo / 60);
+            const seg = dados.tempo % 60;
+            document.getElementById('vencedor-tempo').innerText = min > 0 ? `${min}m ${seg}s` : `${seg}s`;
+            const palavras = dados.palavras && dados.palavras.length > 0 ? dados.palavras.join(', ') : 'Nenhuma';
+            document.getElementById('vencedor-palavras').innerText = palavras;
+            const tela = document.getElementById('tela-vencedor');
+            tela.classList.add('show');
+            setTimeout(() => {
+                tela.classList.remove('show');
+                document.getElementById('msg-aguardando').style.display = 'block';
+            }, 8000);
+        }
+
+        function renderizarRankingUI(titulo, dicionarioDados, corScore, sulfixo, periodoTexto) {
+            document.getElementById('game-view').style.display = 'none';
+            document.getElementById('ranking-view').style.display = 'flex';
+            document.getElementById('ranking-title').innerHTML = titulo;
+            document.getElementById('ranking-subtitle').innerText = periodoTexto;
+
+            const lista = document.getElementById('ranking-list');
+            lista.innerHTML = '';
+
+            const arrayOrdenado = Object.entries(dicionarioDados).sort((a, b) => b[1] - a[1]).slice(0, 10);
+
+            if (arrayOrdenado.length === 0) {
+                lista.innerHTML = '<div style="text-align:center; padding: 40px; font-size: 2rem; color: #888;">Ainda não há registos!</div>';
+                return;
+            }
+
+            arrayOrdenado.forEach((item, index) => {
+                const nick = item[0];
+                const score = item[1];
+                const pos = index + 1;
+
+                const div = document.createElement('div');
+                div.className = `rank-item pos-${pos}`;
+
+                let medalha = pos;
+                if(pos===1) medalha = '🥇';
+                if(pos===2) medalha = '🥈';
+                if(pos===3) medalha = '🥉';
+
+                div.innerHTML = `
+                    <div class="rank-pos">${medalha}</div>
+                    <div class="rank-name">${nick}</div>
+                    <div class="rank-score" style="color: ${corScore}">${score} ${sulfixo}</div>
+                `;
+                lista.appendChild(div);
+            });
+        }
+
+        function calculatePositions(listaJogadores) {
+            const posData = {};
+            const centroX = window.innerWidth / 2;
+            const centroY = window.innerHeight / 2;
+            const raioBase = 260;
+            const incrementoRaio = 85;
+            const maxPorCamada = [18, 30, 45, 60];
+
+            let camadas = [];
+            let curLayer = [];
+            let limiteAtual = maxPorCamada[0];
+
+            listaJogadores.forEach((nick) => {
+                if(curLayer.length >= limiteAtual) { camadas.push(curLayer); curLayer = []; limiteAtual = maxPorCamada[camadas.length] || 50; }
+                curLayer.push(nick);
+            });
+            if(curLayer.length > 0) camadas.push(curLayer);
+
+            camadas.forEach((camada, indiceCamada) => {
+                let raio = raioBase + (indiceCamada * incrementoRaio);
+                camada.forEach((nick, idx) => {
+                    const angulo = (idx / camada.length) * 2 * Math.PI - (Math.PI / 2);
+                    const x = centroX + Math.cos(angulo) * raio;
+                    const y = centroY + Math.sin(angulo) * raio;
+                    posData[nick] = { x, y };
+                });
+            });
+            return posData;
+        }
+
+        // ==========================================
+        // ⚙️ PARTE 2: REGRAS, COMBOS E ATUALIZAÇÃO
+        // ==========================================
+
+        function adicionarJogador(nick, avatar) {
+            if (!jogo.dados_jogadores[nick]) {
+                jogo.dados_jogadores[nick] = { avatar: avatar, taps: 0, tickets: {reviver: 0}, colete: 0, last_gift_times: {}, gift_counts: {}, acertos_lista: [] };
+            } else if (avatar && !avatar.includes("dicebear")) {
+                jogo.dados_jogadores[nick].avatar = avatar;
+            }
+            if (!jogo.jogadores_roda.includes(nick)) jogo.jogadores_roda.push(nick);
+            atualizarTela();
+        }
+
+        function mostrarAviso(texto) {
+            const aviso = document.getElementById('aviso-popup');
+            aviso.innerText = texto; aviso.style.opacity = '1';
+            setTimeout(() => { aviso.style.opacity = '0'; }, 2000);
+        }
+
+        async function iniciarComContagem() {
+            jogo.iniciando = true; atualizarTela();
+            const ov = document.getElementById('overlay-countdown');
+            for (let i = 5; i > 0; i--) {
+                ov.style.display = 'flex'; ov.innerText = i.toString(); playTick(600);
+                await new Promise(r => setTimeout(r, 1000));
+            }
+            ov.innerText = "BORAAAA!"; playTick(1000); setTimeout(() => playTick(1200), 150);
+            await new Promise(r => setTimeout(r, 1000));
+            ov.style.display = 'none';
+
+            jogo.ativo = true; jogo.iniciando = false; jogo.turno_atual = 0;
+            jogo.tempo_inicio = Math.floor(Date.now()/1000);
+            sortearDesafio(); atualizarTela();
+        }
+
+        function processarEventoDaAPI(d) {
+            let evento = d.event;
+            let dados = d.data;
+            if(!dados) return;
+
+            let nick = (dados.nickname || dados.uniqueId || "").trim();
+            if (!nick) return;
+
+            let avatar_url = dados.profilePictureUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${nick}`;
+            espectadoresRecentes[nick] = avatar_url;
+            if (!jogo.dados_jogadores[nick]) {
+                jogo.dados_jogadores[nick] = { avatar: avatar_url, taps: 0, tickets: {reviver: 0}, colete: 0, last_gift_times: {}, gift_counts: {}, acertos_lista: [] };
+            }
+
+            if (!jogo.ativo && !jogo.iniciando) {
+                if ((evento === "join" || evento === "member") && jogo.config.entrar_por_join) {
+                    adicionarJogador(nick, avatar_url);
+                }
+                if (evento === "like" && jogo.config.taps_entrada > 0) {
+                    let taps = parseInt(dados.likeCount || dados.likes || 1);
+                    jogo.dados_jogadores[nick].taps += taps;
+                    if (jogo.dados_jogadores[nick].taps >= jogo.config.taps_entrada && !jogo.jogadores_roda.includes(nick)) {
+                        jogo.dados_jogadores[nick].taps = 0; adicionarJogador(nick, avatar_url);
+                    }
+                }
+            }
+
+            if (evento === "gift") {
+                let pres = (dados.giftName || "").toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+                let qtd_combo = parseInt(dados.repeatCount || dados.giftCount || dados.count || 1);
+
+                let cfg = jogo.config;
+                let c_ent = (cfg.presente_entrada || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+                let c_rev = (cfg.presente_reviver || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+                let c_menos = (cfg.presente_menos_tempo || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+                let c_kick = (cfg.presente_kick || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+                let c_tempo = (cfg.presente_tempo || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+                let c_pular = (cfg.presente_pular || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+                let c_colete = (cfg.presente_colete || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+
+                let is_ent = (pres === c_ent) || (c_ent.includes("rosa") && pres.includes("rosa"));
+                let is_rev = (pres === c_rev) || (c_rev.includes("coracao") && pres.includes("heart"));
+
+                let agora = Date.now();
+                let ultimo_tempo = jogo.dados_jogadores[nick].last_gift_times[pres] || 0;
+                let last_count = (agora - ultimo_tempo > 5000) ? 0 : (jogo.dados_jogadores[nick].gift_counts[pres] || 0);
+
+                if (qtd_combo <= last_count) return;
+                let acoes = qtd_combo - last_count;
+
+                jogo.dados_jogadores[nick].last_gift_times[pres] = agora;
+                jogo.dados_jogadores[nick].gift_counts[pres] = qtd_combo;
+
+                if (is_ent && !jogo.ativo && !jogo.iniciando && !jogo.jogadores_roda.includes(nick)) {
+                    adicionarJogador(nick, avatar_url);
+                }
+                else if (is_rev && (jogo.ativo || jogo.iniciando)) {
+                    let tk_ganhos = acoes;
+                    if (!jogo.jogadores_roda.includes(nick)) { adicionarJogador(nick, avatar_url); tk_ganhos--; mostrarAviso(`${nick} RESSUSCITOU!`); }
+                    if (tk_ganhos > 0) { jogo.dados_jogadores[nick].tickets.reviver += tk_ganhos; mostrarAviso(`+${tk_ganhos} TICKET SALVAR!`); }
+                }
+                else if (pres === c_colete && (!jogo.ativo && !jogo.jogadores_roda.includes(nick))) {
+                     adicionarJogador(nick, avatar_url); let sobras = acoes - 1;
+                     if(sobras > 0) { jogo.dados_jogadores[nick].colete += sobras; mostrarAviso(`🛡️ +${sobras} COLETE(S)!`); }
+                }
+                else if (pres === c_colete && acoes > 0) {
+                     jogo.dados_jogadores[nick].colete += acoes; mostrarAviso(`🛡️ +${acoes} COLETE(S)!`);
+                }
+
+                if (jogo.ativo && jogo.jogadores_roda.length > 0) {
+                    let alvo = jogo.jogadores_roda[jogo.turno_atual];
+                    if (pres === c_menos) {
+                        for(let i=0; i<acoes; i++) {
+                            if (jogo.dados_jogadores[alvo].colete > 0) { jogo.dados_jogadores[alvo].colete--; mostrarAviso(`🛡️ ${alvo} DEFENDEU -5s!`); }
+                            else { jogo.tempo_restante = Math.max(0, jogo.tempo_restante - 5); }
+                        }
+                    }
+                    else if (pres === c_kick) {
+                        for(let i=0; i<acoes; i++) {
+                            if (jogo.jogadores_roda.length > 1) {
+                                let a_kick = jogo.jogadores_roda[jogo.turno_atual];
+                                if (jogo.dados_jogadores[a_kick].colete > 0) { jogo.dados_jogadores[a_kick].colete--; mostrarAviso(`🛡️ ${a_kick} DEFENDEU KICK!`); }
+                                else { spawnCenterExplosion(); jogo.jogadores_roda.splice(jogo.turno_atual, 1); if(jogo.turno_atual >= jogo.jogadores_roda.length) jogo.turno_atual = 0; }
+                            }
+                        }
+                        if(jogo.jogadores_roda.length <= 1) finalizarJogo(); else sortearDesafio();
+                    }
+                    else if (pres === c_tempo) { jogo.tempo_restante += (10 * acoes); mostrarAviso(`AJUDOU COM +${10 * acoes}s!`); }
+                    else if (pres === c_pular) { mostrarAviso(acoes > 1 ? `PULOU ${acoes}x A VEZ!` : `PULOU A VEZ!`); for(let i=0; i<acoes; i++) proximoTurno(); }
+                }
+                atualizarTela();
+            }
+
+            if (evento === "chat") {
+                let msg = (dados.comment || "").toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
+                let msgLimpa = msg.replace(/[^A-Z]/g, "");
+                let msgNum = msg.replace(/[^0-9\-]/g, "");
+
+                let arrayPalavras = msg.split(" "); let alvo_encontrado = null;
+                for(let p_name of Object.keys(jogo.dados_jogadores)) {
+                    let limpo = p_name.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z0-9]/g, "");
+                    for(let w of arrayPalavras) { if(limpo && w.replace(/[^A-Z0-9]/g, "") === limpo) { alvo_encontrado = p_name; break; } }
+                    if(alvo_encontrado) break;
+                }
+
+                if (alvo_encontrado) {
+                    let tk = jogo.dados_jogadores[nick].tickets.reviver; let col = jogo.dados_jogadores[nick].colete;
+                    if (!jogo.jogadores_roda.includes(alvo_encontrado) && tk > 0) {
+                        adicionarJogador(alvo_encontrado, jogo.dados_jogadores[alvo_encontrado].avatar);
+                        jogo.dados_jogadores[nick].tickets.reviver--;
+                        mostrarAviso(nick !== alvo_encontrado ? `${nick} SALVOU ${alvo_encontrado}!` : `${nick} RESSUSCITOU!`);
+                        return;
+                    } else if (col > 0 && nick !== alvo_encontrado) {
+                        jogo.dados_jogadores[nick].colete--; jogo.dados_jogadores[alvo_encontrado].colete++;
+                        mostrarAviso(`🛡️ ${nick} DEU 1 COLETE A ${alvo_encontrado}!`); return;
+                    }
+                }
+
+                if ((msgLimpa || msgNum) && jogo.ativo && jogo.jogadores_roda.length > 0) {
+                    if (nick === jogo.jogadores_roda[jogo.turno_atual]) {
+                        if (jogo.tipo_desafio === "matematica" && msgNum === jogo.resposta_matematica) {
+                            jogo.dados_jogadores[nick].acertos_lista.push(jogo.silaba_atual); proximoTurno();
+                        } else if (jogo.tipo_desafio === "silaba" && msgLimpa.includes(jogo.silaba_atual)) {
+                            if (!palavraExiste(msgLimpa)) { mostrarAviso("NÃO EXISTE!"); playError(); }
+                            else if (msgLimpa.length < 3) { mostrarAviso("MUITO CURTA!"); playError(); }
+                            else if (!jogo.palavras_usadas.includes(msgLimpa)) {
+                                jogo.palavras_usadas.push(msgLimpa); jogo.dados_jogadores[nick].acertos_lista.push(msgLimpa); proximoTurno();
+                            } else { mostrarAviso("JÁ USADA!"); playError(); }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 🏆 SISTEMA DE MEMÓRIA DOS RANKINGS (NOVO)
+        let espectadoresRecentes = {};
+
+        function getPeriodos() {
+            const d = new Date(); const dia = d.toISOString().split('T')[0]; const mes = dia.substring(0, 7);
+            const d0 = new Date(d.getFullYear(), 0, 1);
+            const semana = d.getFullYear() + '-W' + Math.ceil((((d - d0) / 86400000) + d0.getDay() + 1) / 7);
+            return { diario: dia, semanal: semana, mensal: mes, geral: 'geral' };
+        }
+
+        // 🏆 SISTEMA DE MEMÓRIA DOS RANKINGS (COMPLETO)
+        function checkRankingResets(rankings) {
+            let p = getPeriodos(); let changed = false;
+            if (rankings.id_diario !== p.diario) { rankings.diario = {vitorias:{}, palavras:{}, heroi:{}, vilao:{}}; rankings.id_diario = p.diario; changed = true; }
+            if (rankings.id_semanal !== p.semanal) { rankings.semanal = {vitorias:{}, palavras:{}, heroi:{}, vilao:{}}; rankings.id_semanal = p.semanal; changed = true; }
+            if (rankings.id_mensal !== p.mensal) { rankings.mensal = {vitorias:{}, palavras:{}, heroi:{}, vilao:{}}; rankings.id_mensal = p.mensal; changed = true; }
+            return changed;
+        }
+
+        function addRanking(categoria, nick, valor=1) {
+            let rStr = localStorage.getItem('bombaRankings');
+            let rankings = rStr ? JSON.parse(rStr) : {
+                id_diario: '', id_semanal: '', id_mensal: '',
+                diario: {vitorias:{}, palavras:{}, heroi:{}, vilao:{}}, semanal: {vitorias:{}, palavras:{}, heroi:{}, vilao:{}},
+                mensal: {vitorias:{}, palavras:{}, heroi:{}, vilao:{}}, geral: {vitorias:{}, palavras:{}, heroi:{}, vilao:{}}
+            };
+            checkRankingResets(rankings);
+            ['diario', 'semanal', 'mensal', 'geral'].forEach(periodo => {
+                if(!rankings[periodo][categoria]) rankings[periodo][categoria] = {};
+                rankings[periodo][categoria][nick] = (rankings[periodo][categoria][nick] || 0) + valor;
+            });
+            localStorage.setItem('bombaRankings', JSON.stringify(rankings));
+        }
+
+        function atualizarTela() {
+            if (jogo.config.volume_explosao !== undefined) audioExplosaoMp3.volume = jogo.config.volume_explosao;
+            if (jogo.config.bg_type === 'color') {
+                document.body.style.backgroundImage = 'none'; document.body.style.backgroundColor = jogo.config.bg_value;
+            } else if (jogo.config.bg_type === 'image') {
+                document.body.style.backgroundColor = 'transparent'; document.body.style.backgroundImage = `url('${jogo.config.bg_value}')`;
+            }
+
+            if (document.getElementById('tela-vencedor').classList.contains('show')) return;
+
+            // 👁️ O JOGO AGORA LÊ A ABA E O PERÍODO DO PAINEL!
+            if (jogo.display_mode && jogo.display_mode !== 'game') {
+                let rStr = localStorage.getItem('bombaRankings');
+                let rankings = rStr ? JSON.parse(rStr) : null;
+
+                let per = jogo.display_periodo || 'diario';
+                let nomePer = "RANKING DE HOJE";
+                if(per === "semanal") nomePer = "RANKING DA SEMANA";
+                if(per === "mensal") nomePer = "RANKING DESTE MÊS";
+                if(per === "geral") nomePer = "RANKING GERAL (HISTÓRICO)";
+
+                let dataDict = (rankings && rankings[per]) ? rankings[per] : {vitorias: {}, palavras: {}, heroi: {}, vilao: {}};
+
+                if (jogo.display_mode === 'rank_vitorias') renderizarRankingUI("🏆 TOP VITÓRIAS", dataDict.vitorias, "gold", "Vitórias", nomePer);
+                if (jogo.display_mode === 'rank_palavras') renderizarRankingUI("🧠 MESTRES", dataDict.palavras, "#2ed573", "Acertos", nomePer);
+                if (jogo.display_mode === 'rank_heroi') renderizarRankingUI("🦸‍♂️ MAIORES HERÓIS", dataDict.heroi, "#3498db", "Salvos", nomePer);
+                if (jogo.display_mode === 'rank_vilao') renderizarRankingUI("🦹‍♂️ MAIORES VILÕES", dataDict.vilao, "#ff4757", "Kills", nomePer);
+                return;
+            }
+
+            document.getElementById('ranking-view').style.display = 'none';
+            document.getElementById('game-view').style.display = 'block';
+
+            if (jogo.ativo && !jogoEstavaAtivo) { posicoesFixas = calculatePositions(jogo.jogadores_roda); jogoEstavaAtivo = true; }
+            else if (!jogo.ativo && jogoEstavaAtivo) { jogoEstavaAtivo = false; }
+
+            renderizarRoda(jogo, jogo.jogadores_roda, jogo.dados_jogadores);
+
+            if (jogo.ativo && jogo.jogadores_roda.length > 0) {
+                document.getElementById('msg-aguardando').style.display = 'none';
+                document.getElementById('centro').style.display = 'flex';
+                document.getElementById('silaba-texto').style.display = 'block';
+                document.getElementById('silaba-texto').innerText = jogo.silaba_atual;
+                document.getElementById('tempo').innerText = jogo.tempo_restante + 's';
+
+                const circle = document.querySelector('.progress-ring__circle');
+                let perc = Math.max(0, Math.min(1, jogo.tempo_restante / (jogo.config.tempo_rodada || 30)));
+                circle.style.strokeDashoffset = 502 - (perc * 502);
+
+                if (jogo.tempo_restante <= 10) {
+                    document.getElementById('tempo').style.color = '#ff4757'; circle.style.stroke = '#ff4757'; circle.style.filter = 'drop-shadow(0 0 15px rgba(255, 71, 87, 0.9))';
+                } else {
+                    document.getElementById('tempo').style.color = '#f39c12'; circle.style.stroke = '#f39c12'; circle.style.filter = 'drop-shadow(0 0 10px rgba(243, 156, 18, 0.8))';
+                }
+
+                let dVez = jogo.jogadores_roda[jogo.turno_atual];
+                if(dVez && jogo.dados_jogadores[dVez]) {
+                    let tkAtivo = jogo.dados_jogadores[dVez].tickets?.reviver || 0;
+                    document.getElementById('nick-ativo').innerText = dVez;
+                    document.getElementById('ticket-ativo').innerHTML = tkAtivo > 0 ? `🎟️${tkAtivo}` : '';
+                    document.getElementById('avatar-ativo').src = jogo.dados_jogadores[dVez].avatar;
+                }
+            } else {
+                document.getElementById('centro').style.display = 'none';
+                document.getElementById('silaba-texto').style.display = 'none';
+                document.getElementById('linha-seta').setAttribute('visibility', 'hidden');
+                document.getElementById('msg-aguardando').style.display = jogo.iniciando ? 'none' : (jogo.jogadores_roda.length > 0 ? 'none' : 'block');
+            }
+        }
+
+        // O RELÓGIO PRINCIPAL (Substitui o loop do Python)
+        setInterval(() => {
+            if (jogo.ativo && jogo.jogadores_roda.length > 1) {
+                jogo.tempo_restante--;
+                if (jogo.tempo_restante > 0) {
+                    playTick(600);
+                    if (jogo.tempo_restante <= 10) setTimeout(() => playTick(800), 500);
+                    if (jogo.tempo_restante <= 5) { setTimeout(() => playTick(1000), 250); setTimeout(() => playTick(1000), 750); }
+                } else {
+                    playExplosionFlash(); spawnCenterExplosion();
+                    let morto = jogo.jogadores_roda[jogo.turno_atual];
+                    jogo.jogadores_roda.splice(jogo.turno_atual, 1);
+                    if (jogo.turno_atual >= jogo.jogadores_roda.length) jogo.turno_atual = 0;
+                    if (jogo.jogadores_roda.length <= 1) finalizarJogo(); else sortearDesafio();
+                }
+                atualizarTela();
+            }
+
+            let cmdStr = localStorage.getItem('bombaCommand');
+            if (cmdStr) {
+                let cmd = JSON.parse(cmdStr);
+                if (cmd.ts !== jogo.lastCmdTs) {
+                    jogo.lastCmdTs = cmd.ts;
+
+                    // 🔌 ELE AGORA ESCUTA OS 3 COMANDOS DE RANKING DO PAINEL
+                    if (cmd.action === 'display_mode') {
+                        jogo.display_mode = cmd.value;
+                        atualizarTela();
+                    }
+                    if (cmd.action === 'display_periodo') {
+                        jogo.display_periodo = cmd.value;
+                        atualizarTela();
+                    }
+                    if (cmd.action === 'limpar_diario') {
+                        let rStr = localStorage.getItem('bombaRankings');
+                        let rankings = rStr ? JSON.parse(rStr) : null;
+                        if(rankings) {
+                            rankings.diario = {vitorias:{}, palavras:{}, heroi:{}, vilao:{}};
+                            localStorage.setItem('bombaRankings', JSON.stringify(rankings));
+                            atualizarTela();
+                        }
+                    }
+
+                    // O jogo agora escuta se a cor do fundo mudou e atualiza na hora!
+                    if (cmd.action === 'update_bg') {
+                        atualizarConfig();
+                        atualizarTela();
+                    }
+
+                    if (cmd.action === 'start_game' && jogo.jogadores_roda.length > 1 && !jogo.ativo && !jogo.iniciando) iniciarComContagem();
+                    if (cmd.action === 'add_player' && !jogo.jogadores_roda.includes(cmd.value)) adicionarJogador(cmd.value, `https://api.dicebear.com/7.x/bottts/svg?seed=${cmd.value}`);
+                    if (cmd.action === 'remove_player' && jogo.jogadores_roda.includes(cmd.value)) {
+                        let idx = jogo.jogadores_roda.indexOf(cmd.value); jogo.jogadores_roda.splice(idx, 1);
+                        if (jogo.ativo) {
+                            if (jogo.jogadores_roda.length <= 1) finalizarJogo();
+                            else { if (idx < jogo.turno_atual) jogo.turno_atual--; if (jogo.turno_atual >= jogo.jogadores_roda.length) jogo.turno_atual = 0; if (idx <= jogo.turno_atual) sortearDesafio(); }
+                        }
+                        atualizarTela();
+                    }
+                }
+            }
+
+            localStorage.setItem('bombaState', JSON.stringify({
+                jogadores: jogo.jogadores_roda,
+                espectadores: espectadoresRecentes,
+                dados_jogadores: jogo.dados_jogadores
+            }));
+        }, 1000);
+
+        window.addEventListener('resize', () => window.dispatchEvent(new Event('redraw')));
+
+        // NOVO: Sistema de sincronização inteligente de DOM (acaba com as fotos piscando)
+        function renderizarRoda(jogo, listaJogadores, dados) {
+            const roda = document.getElementById('roda');
+            const centroX = window.innerWidth / 2;
+            const centroY = window.innerHeight / 2;
+            let setaVisible = false;
+
+            let posicoes = jogo.ativo ? posicoesFixas : calculatePositions(listaJogadores);
+
+            // 1. Limpa da tela quem já morreu ou saiu
+            const nicksAtuais = new Set(listaJogadores);
+            Array.from(roda.children).forEach(child => {
+                if (!nicksAtuais.has(child.dataset.nick)) {
+                    roda.removeChild(child);
+                }
+            });
+
+            // 2. Atualiza ou cria quem está no jogo
+            listaJogadores.forEach((nick, indexListaAtual) => {
+                const pos = posicoes[nick];
+                if(!pos) return;
+
+                const x = pos.x; const y = pos.y;
+                let playerContainer = Array.from(roda.children).find(c => c.dataset.nick === nick);
+
+                let tk = 0; let col = 0;
+                if (dados && dados[nick]) {
+                    if (dados[nick].tickets) tk = dados[nick].tickets.reviver || 0;
+                    col = dados[nick].colete || 0;
+                }
+                const tkStr = tk > 0 ? `<div class="ticket-badge">🎟️${tk}</div>` : '';
+                const colStr = col > 0 ? `<div class="colete-badge">🛡️${col}</div>` : '';
+                const isAtivo = (jogo.ativo && indexListaAtual === jogo.turno_atual);
+
+                if (!playerContainer) {
+                    playerContainer = document.createElement('div');
+                    playerContainer.className = 'player-roda-container';
+                    playerContainer.dataset.nick = nick;
+
+                    const img = document.createElement('img');
+                    img.src = dados[nick]?.avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=fallback';
+                    img.className = 'avatar-roda';
+
+                    const nameContainer = document.createElement('div');
+                    nameContainer.className = 'nome-roda-container';
+                    nameContainer.innerHTML = `<div class="nome-texto">${nick}</div>${tkStr}${colStr}`;
+
+                    playerContainer.appendChild(img);
+                    playerContainer.appendChild(nameContainer);
+                    roda.appendChild(playerContainer);
+                } else {
+                    // Quando atualiza o jogador que já existe:
+                    const nameContainer = playerContainer.querySelector('.nome-roda-container');
+                    nameContainer.innerHTML = `<div class="nome-texto">${nick}</div>${tkStr}${colStr}`;
+                }
+
+                playerContainer.style.left = x + 'px';
+                playerContainer.style.top = y + 'px';
+
+                const imgNode = playerContainer.querySelector('.avatar-roda');
+
+                if (isAtivo) {
+                    imgNode.style.border = "4px solid #f39c12";
+                    imgNode.style.boxShadow = "0 0 15px #f39c12";
+                    playerContainer.style.transform = "translate(-50%, -50%) scale(1.3)";
+                    playerContainer.style.zIndex = "20";
+
+                    const dx = x - centroX; const dy = y - centroY;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist > 0) {
+                        const ratioPonta = (dist - 45) / dist; const ratioBaseMulti = 110 / dist;
+                        const seta = document.getElementById('linha-seta');
+                        seta.setAttribute('x1', centroX + dx * ratioBaseMulti); seta.setAttribute('y1', centroY + dy * ratioBaseMulti);
+                        seta.setAttribute('x2', centroX + dx * ratioPonta); seta.setAttribute('y2', centroY + dy * ratioPonta);
+                        seta.setAttribute('visibility', 'visible');
+                        setaVisible = true;
+                    }
+                } else {
+                    imgNode.style.border = "3px solid #555";
+                    imgNode.style.boxShadow = "none";
+                    playerContainer.style.transform = "translate(-50%, -50%) scale(1)";
+                    playerContainer.style.zIndex = "1";
+                }
+            });
+
+            if (!setaVisible) document.getElementById('linha-seta').setAttribute('visibility', 'hidden');
+        }
+
+        // ==========================================
+        // 📡 PARTE 3: ANTENA HÍBRIDA (NUVEM / TIKFINITY)
+        // ==========================================
+        let conexaoNuvemEstabelecida = false;
+        let wsNuvem = null;
+        let wsTikfinity = null;
+        let lastTiktokUser = "";
+
+        function verificarEConectar() {
+            let urlParams = new URLSearchParams(window.location.search);
+            let targetUser = urlParams.get('user');
+
+            // MODO TIKFINITY LOCAL (Se não houver link de cliente)
+            if (!targetUser) {
+                if (conexaoNuvemEstabelecida && wsNuvem) { console.log("🔌 Nuvem desligada."); wsNuvem.close(); }
+                if (!wsTikfinity || wsTikfinity.readyState !== WebSocket.OPEN) {
+                    wsTikfinity = new WebSocket("ws://127.0.0.1:21213/");
+                    wsTikfinity.onmessage = (event) => {
+                        try { processarEventoDaAPI(JSON.parse(event.data)); } catch(e) {}
+                    };
+                    wsTikfinity.onclose = () => { wsTikfinity = null; };
+                }
+                lastTiktokUser = "";
+                return;
+            }
+
+            // MODO NUVEM DE ELITE (Se o link tiver ?user=nome)
+            targetUser = targetUser.replace('@', '').trim();
+            if (conexaoNuvemEstabelecida && lastTiktokUser === targetUser) return;
+
+            if (wsNuvem) wsNuvem.close();
+            if (wsTikfinity) { wsTikfinity.close(); wsTikfinity = null; }
+
+            lastTiktokUser = targetUser;
+            console.log(`☁️ Conectando na Torre de Controle: @${targetUser}...`);
+
+            wsNuvem = new WebSocket("wss://torre-de-controle-rdm.onrender.com:443/");
+
+            wsNuvem.onopen = () => {
+                conexaoNuvemEstabelecida = true;
+                console.log(`✅ NUVEM CONECTADA! Escutando @${targetUser}`);
+                wsNuvem.send(JSON.stringify({"action": "connect", "tiktok_user": targetUser}));
+                mostrarAviso("☁️ NUVEM CONECTADA!");
+            };
+
+            wsNuvem.onmessage = (event) => {
+                try { processarEventoDaAPI(JSON.parse(event.data)); } catch(e) {}
+            };
+
+            wsNuvem.onclose = () => { conexaoNuvemEstabelecida = false; wsNuvem = null; };
+        }
+
+        // A antena procura sinais a cada 2 segundos!
+        setInterval(verificarEConectar, 2000);
+    </script>
+</body>
+</html>
