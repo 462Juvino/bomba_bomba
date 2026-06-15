@@ -196,7 +196,11 @@
         puxarMemoria();
 
         function salvarConfig(silencioso = false) {
+            // Puxa o @ direto da conta logada na RDM Studio
+            let rdmUser = localStorage.getItem('rdm_user') || "";
+
             const config = {
+                tiktok_user: rdmUser,
                 modo_jogo: document.getElementById('modo_jogo').value, tempo_rodada: parseInt(document.getElementById('tempo_rodada').value),
                 presente_entrada: document.getElementById('pres_entrada').value, presente_tempo: document.getElementById('pres_tempo').value,
                 presente_pular: document.getElementById('pres_pular').value, presente_menos_tempo: document.getElementById('pres_menos_tempo').value,

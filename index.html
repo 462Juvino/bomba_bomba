@@ -156,6 +156,15 @@
     </div>
 
     <script>
+        // 🛡️ TRAVA RDM STUDIO: Verifica a licença no momento que o jogo abre
+        window.rdmUser = localStorage.getItem('rdm_user');
+        window.rdmPerfil = localStorage.getItem('rdm_perfil');
+
+        if (!window.rdmUser || !window.rdmPerfil) {
+            document.body.innerHTML = "<div style='display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; background:#000;'><h1 style='color:#ef4444; text-shadow:0 0 20px #ef4444;'>ACESSO NEGADO</h1><p style='color:#ccc; font-size:20px;'>Você precisa estar logado na RDM Studio para jogar.</p></div>";
+            window.stop(); // Trava tudo e impede o jogo de carregar
+        }
+
         // ==========================================
         // 🧠 PARTE 1: DICIONÁRIO DUPLO E MATEMÁTICA
         // ==========================================
@@ -699,6 +708,34 @@
 
         // O RELÓGIO PRINCIPAL (Substitui o loop do Python)
         setInterval(() => {
+            // ⏱️ CHECAGEM DE LICENÇA EM TEMPO REAL RDM
+            if (window.rdmPerfil === "gratuito" || window.rdmPerfil === "plus premium") {
+                let horaAtual = Date.now();
+                if (!window.rdmSessaoIniciada) window.rdmSessaoIniciada = horaAtual;
+
+                let tempoDecorridoMs = horaAtual - window.rdmSessaoIniciada;
+                let limiteMs = (window.rdmPerfil === "gratuito") ? (2 * 60 * 60 * 1000) : (42 * 60 * 60 * 1000);
+
+                if (tempoDecorridoMs >= limiteMs) {
+                    jogo.ativo = false;
+                    jogo.jogadores_roda = [];
+                    atualizarTela();
+
+                    let blockScreen = document.getElementById('rdm-block-screen');
+                    if (!blockScreen) {
+                        blockScreen = document.createElement('div');
+                        blockScreen.id = 'rdm-block-screen';
+                        blockScreen.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.95); z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center;';
+                        blockScreen.innerHTML = `<h1 style='color:#facc15; font-size:40px; text-shadow:0 0 20px #facc15;'>⏱️ TEMPO ESGOTADO!</h1><p style='color:white; font-size:20px;'>A carga de horas do seu plano atual chegou ao fim. Faça um upgrade no site RDM Studio.</p>`;
+                        document.body.appendChild(blockScreen);
+                        if (wsNuvem) wsNuvem.close(); // Corta a conexão
+                        if (wsTikfinity) wsTikfinity.close();
+                    }
+                    return; // Congela o relógio
+                }
+            }
+
+            // O Relógio do jogo continua normal abaixo...
             if (jogo.ativo && jogo.jogadores_roda.length > 1) {
                 jogo.tempo_restante--;
                 if (jogo.tempo_restante > 0) {
@@ -857,48 +894,30 @@
         }
 
         // ==========================================
-        // 📡 PARTE 3: ANTENA HÍBRIDA (NUVEM / TIKFINITY)
+        // 📡 PARTE 3: ANTENA HÍBRIDA INTELIGENTE (PRIORIDADE TIKFINITY)
         // ==========================================
         let conexaoNuvemEstabelecida = false;
         let wsNuvem = null;
         let wsTikfinity = null;
         let lastTiktokUser = "";
 
-        function verificarEConectar() {
-            let urlParams = new URLSearchParams(window.location.search);
-            let targetUser = urlParams.get('user');
+        function conectarNuvem() {
+            let targetUser = window.rdmUser;
+            if (!targetUser) return;
 
-            // MODO TIKFINITY LOCAL (Se não houver link de cliente)
-            if (!targetUser) {
-                if (conexaoNuvemEstabelecida && wsNuvem) { console.log("🔌 Nuvem desligada."); wsNuvem.close(); }
-                if (!wsTikfinity || wsTikfinity.readyState !== WebSocket.OPEN) {
-                    wsTikfinity = new WebSocket("ws://127.0.0.1:21213/");
-                    wsTikfinity.onmessage = (event) => {
-                        try { processarEventoDaAPI(JSON.parse(event.data)); } catch(e) {}
-                    };
-                    wsTikfinity.onclose = () => { wsTikfinity = null; };
-                }
-                lastTiktokUser = "";
-                return;
-            }
-
-            // MODO NUVEM DE ELITE (Se o link tiver ?user=nome)
-            targetUser = targetUser.replace('@', '').trim();
             if (conexaoNuvemEstabelecida && lastTiktokUser === targetUser) return;
 
             if (wsNuvem) wsNuvem.close();
-            if (wsTikfinity) { wsTikfinity.close(); wsTikfinity = null; }
 
             lastTiktokUser = targetUser;
-            console.log(`☁️ Conectando na Torre de Controle: @${targetUser}...`);
+            console.log(`☁️ Tentando Nuvem para: @${targetUser}...`);
 
             wsNuvem = new WebSocket("wss://torre-de-controle-rdm.onrender.com:443/");
 
             wsNuvem.onopen = () => {
                 conexaoNuvemEstabelecida = true;
                 console.log(`✅ NUVEM CONECTADA! Escutando @${targetUser}`);
-                wsNuvem.send(JSON.stringify({"action": "connect", "tiktok_user": targetUser}));
-                mostrarAviso("☁️ NUVEM CONECTADA!");
+                mostrarAviso("☁️ NUVEM RDM CONECTADA!");
             };
 
             wsNuvem.onmessage = (event) => {
@@ -906,6 +925,33 @@
             };
 
             wsNuvem.onclose = () => { conexaoNuvemEstabelecida = false; wsNuvem = null; };
+        }
+
+        function verificarEConectar() {
+            // Tenta priorizar o TikFinity Local!
+            if (!wsTikfinity || wsTikfinity.readyState === WebSocket.CLOSED) {
+                wsTikfinity = new WebSocket("ws://127.0.0.1:21213/");
+
+                wsTikfinity.onopen = () => {
+                    console.log("✅ TikFinity Local Conectado!");
+                    // Se o TikFinity conectou, desliga a Nuvem para não duplicar os presentes
+                    if (wsNuvem) { wsNuvem.close(); wsNuvem = null; conexaoNuvemEstabelecida = false; }
+                };
+
+                wsTikfinity.onmessage = (event) => {
+                    try { processarEventoDaAPI(JSON.parse(event.data)); } catch(e) {}
+                };
+
+                wsTikfinity.onerror = () => {
+                    // Se o TikFinity der erro (ex: programa fechado), aciona a Nuvem com o @ do site
+                    conectarNuvem();
+                };
+
+                wsTikfinity.onclose = () => { wsTikfinity = null; };
+            } else if (wsTikfinity.readyState === WebSocket.OPEN) {
+                // Se já estiver rodando pelo TikFinity, garante que a Nuvem fique desligada
+                if (wsNuvem) { wsNuvem.close(); wsNuvem = null; conexaoNuvemEstabelecida = false; }
+            }
         }
 
         // A antena procura sinais a cada 2 segundos!
