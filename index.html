@@ -575,12 +575,17 @@
 
                 if (alvo_encontrado) {
                     let tk = jogo.dados_jogadores[nick].tickets.reviver; let col = jogo.dados_jogadores[nick].colete;
-                    if (!jogo.jogadores_roda.includes(alvo_encontrado) && tk > 0) {
+
+                    // Verifica se as palavras mágicas estão na mensagem
+                    let quer_reviver = msgLimpa.includes("REVIVER");
+                    let quer_colete = msgLimpa.includes("COLETE");
+
+                    if (!jogo.jogadores_roda.includes(alvo_encontrado) && tk > 0 && quer_reviver) {
                         adicionarJogador(alvo_encontrado, jogo.dados_jogadores[alvo_encontrado].avatar);
                         jogo.dados_jogadores[nick].tickets.reviver--;
                         mostrarAviso(nick !== alvo_encontrado ? `${nick} SALVOU ${alvo_encontrado}!` : `${nick} RESSUSCITOU!`);
                         return;
-                    } else if (col > 0 && nick !== alvo_encontrado) {
+                    } else if (col > 0 && nick !== alvo_encontrado && quer_colete) {
                         jogo.dados_jogadores[nick].colete--; jogo.dados_jogadores[alvo_encontrado].colete++;
                         mostrarAviso(`🛡️ ${nick} DEU 1 COLETE A ${alvo_encontrado}!`); return;
                     }
