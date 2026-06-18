@@ -196,8 +196,8 @@
         puxarMemoria();
 
         function salvarConfig(silencioso = false) {
-            // Puxa o @ direto da conta logada na RDM Studio
-            let rdmUser = localStorage.getItem('rdm_user') || "";
+            // Puxa o @ direto da conta logada na RDM Studio (Priorizando o formato com Ponto)
+            let rdmUser = localStorage.getItem('rdm_user_tiktok') || localStorage.getItem('rdm_user') || "";
 
             const config = {
                 tiktok_user: rdmUser,

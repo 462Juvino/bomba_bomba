@@ -157,7 +157,8 @@
 
     <script>
         // 🛡️ TRAVA RDM STUDIO: Verifica a licença no momento que o jogo abre
-        window.rdmUser = localStorage.getItem('rdm_user');
+        // Puxa primeiro a versão com PONTO, se não achar, usa a antiga por segurança
+        window.rdmUser = localStorage.getItem('rdm_user_tiktok') || localStorage.getItem('rdm_user');
         window.rdmPerfil = localStorage.getItem('rdm_perfil');
 
         if (!window.rdmUser || !window.rdmPerfil) {
@@ -912,17 +913,24 @@
 
             if (conexaoNuvemEstabelecida && lastTiktokUser === targetUser) return;
 
+            // ⚠️ A CORREÇÃO DE LOOP: Impede que o jogo cancele a conexão enquanto a torre acorda!
+            if (wsNuvem && wsNuvem.readyState === WebSocket.CONNECTING) {
+                return;
+            }
+
             if (wsNuvem) wsNuvem.close();
 
             lastTiktokUser = targetUser;
-            console.log(`☁️ Tentando Nuvem para: @${targetUser}...`);
+            console.log(`☁️ Tentando Nuvem para: @${targetUser}... (Aguardando resposta)`);
 
             wsNuvem = new WebSocket("wss://torre-de-controle-rdm.onrender.com:443/");
 
             wsNuvem.onopen = () => {
                 conexaoNuvemEstabelecida = true;
-                console.log(`✅ NUVEM CONECTADA! Escutando @${targetUser}`);
-                mostrarAviso("☁️ NUVEM RDM CONECTADA!");
+                console.log(`✅ NUVEM CONECTADA! Escutando: @${targetUser}`);
+
+                // ⚠️ A PROVA VISUAL NO BOMBA BOMBA
+                mostrarAviso(`☁️ NUVEM LIGADA! (@${targetUser})`);
             };
 
             wsNuvem.onmessage = (event) => {
