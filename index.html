@@ -166,6 +166,11 @@
             window.stop(); // Trava tudo e impede o jogo de carregar
         }
 
+        // ⚡ DESPERTADOR DA API (Acorda o servidor Render imediatamente em background)
+        fetch("https://torre-de-controle-rdm.onrender.com/", { mode: 'no-cors' }).catch(() => {});
+
+        // ==========================================
+
         // ==========================================
         // 🧠 PARTE 1: DICIONÁRIO DUPLO E MATEMÁTICA
         // ==========================================
@@ -928,6 +933,9 @@
             wsNuvem.onopen = () => {
                 conexaoNuvemEstabelecida = true;
                 console.log(`✅ NUVEM CONECTADA! Escutando: @${targetUser}`);
+
+                // 🪄 A LINHA MÁGICA: Diz à API qual live espelhar!
+                wsNuvem.send(JSON.stringify({ action: "connect", tiktok_user: targetUser }));
 
                 // ⚠️ A PROVA VISUAL NO BOMBA BOMBA
                 mostrarAviso(`☁️ NUVEM LIGADA! (@${targetUser})`);
