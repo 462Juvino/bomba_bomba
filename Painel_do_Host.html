@@ -179,11 +179,27 @@
     <script>
         let currentBgType = 'transparent';
         let currentBgValue = 'transparent';
-        let lastCfgStr = ""; // Memória da última configuração
+        let lastCfgStr = "";
 
-        // 🔗 GERA O LINK AUTOMÁTICO PARA O OBS
+        // 🛡️ VERIFICA A LICENÇA DO RDM STUDIO
+        function verificarStatusRDM() {
+            let user = localStorage.getItem('rdm_user_tiktok') || localStorage.getItem('rdm_user');
+            let perfil = localStorage.getItem('rdm_perfil');
+            let msgEl = document.getElementById('licenseMsg');
+            let hwidEl = document.getElementById('hwid-display');
+
+            if (user && perfil) {
+                if(msgEl) { msgEl.innerText = `✅ Logado como: ${user} (${perfil.toUpperCase()})`; msgEl.style.color = "#2ecc71"; }
+                if(hwidEl) { hwidEl.style.display = 'none'; }
+            } else {
+                if(msgEl) { msgEl.innerText = "❌ Desconectado. Faça login no site RDM Studio."; msgEl.style.color = "#e74c3c"; }
+            }
+        }
+        verificarStatusRDM();
+        setInterval(verificarStatusRDM, 5000);
+
         function atualizarLinkOBS() {
-            let user = localStorage.getItem('rdm_user_tiktok') || localStorage.getItem('rdm_user') || "SEU_NICK";
+            let user = localStorage.getItem('rdm_user_tiktok') || localStorage.getItem('rdm_user') || "visitante";
             let baseURL = window.location.href.replace('Painel_do_Host.html', 'index.html').split('?')[0];
             document.getElementById('obs-link').value = `${baseURL}?u=${user}&p=pro`;
         }
@@ -191,15 +207,12 @@
 
         function copiarLinkOBS() {
             let input = document.getElementById('obs-link');
-            input.select();
-            document.execCommand("copy");
+            input.select(); document.execCommand("copy");
             alert("✅ Link copiado! Pode colar no TikTok Live Studio ou OBS.");
         }
 
-        // 🔄 FUNÇÃO QUE ATUALIZA OS CAMPOS DO PAINEL VISUALMENTE
         function carregarConfigInputs(cfgStr) {
-            lastCfgStr = cfgStr;
-            let cfg = JSON.parse(cfgStr);
+            lastCfgStr = cfgStr; let cfg = JSON.parse(cfgStr);
             document.getElementById('tempo_rodada').value = cfg.tempo_rodada || 30;
             document.getElementById('pres_entrada').value = cfg.presente_entrada || "Rosa";
             document.getElementById('pres_tempo').value = cfg.presente_tempo || "Relogio";
@@ -216,17 +229,12 @@
             document.getElementById('volume_explosao').value = vol;
             document.getElementById('vol_val').innerText = vol + '%';
 
-            currentBgType = cfg.bg_type || 'transparent';
-            currentBgValue = cfg.bg_value || 'transparent';
-
-            let radio = document.querySelector(`input[name="bg_type"][value="${currentBgType}"]`);
-            if(radio) radio.checked = true;
-
+            currentBgType = cfg.bg_type || 'transparent'; currentBgValue = cfg.bg_value || 'transparent';
+            let radio = document.querySelector(`input[name="bg_type"][value="${currentBgType}"]`); if(radio) radio.checked = true;
             atualizarVisibilidadeFundo();
             if(currentBgType === 'color' && currentBgValue !== 'transparent') document.getElementById('bg_color').value = currentBgValue;
         }
 
-        // 📡 LÊ O ESTADO DO JOGO E SINCRONIZA AS ABAS A CADA SEGUNDO
         setInterval(() => {
             let stateStr = localStorage.getItem('bombaState');
             if (stateStr) {
@@ -235,21 +243,13 @@
                 renderizarEspectadores(state.espectadores || {}, state.jogadores || []);
                 filtrarListas();
             }
-
             let cfgStr = localStorage.getItem('bombaConfig');
             if (cfgStr && cfgStr !== lastCfgStr) {
-                // 🛡️ ESCUDO: Só atualiza os campos se você NÃO estiver a digitar neles!
-                if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT') {
-                    carregarConfigInputs(cfgStr);
-                }
+                if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT') carregarConfigInputs(cfgStr);
             }
         }, 1000);
 
-        // Ao abrir o painel pela primeira vez, força o carregamento imediato
-        window.onload = () => {
-            let initialCfg = localStorage.getItem('bombaConfig');
-            if (initialCfg) carregarConfigInputs(initialCfg);
-        };
+        window.onload = () => { let initialCfg = localStorage.getItem('bombaConfig'); if (initialCfg) carregarConfigInputs(initialCfg); };
 
         function atualizarVisibilidadeFundo() {
             document.getElementById('div_bg_color').style.display = currentBgType === 'color' ? 'block' : 'none';
@@ -260,15 +260,13 @@
             currentBgType = document.querySelector('input[name="bg_type"]:checked').value;
             if (currentBgType === 'transparent') currentBgValue = 'transparent';
             else if (currentBgType === 'color') currentBgValue = document.getElementById('bg_color').value || '#1a1a24';
-            atualizarVisibilidadeFundo();
-            salvarConfig(true);
+            atualizarVisibilidadeFundo(); salvarConfig(true);
         }
 
         function enviarFundoCor() { currentBgValue = document.getElementById('bg_color').value; salvarConfig(true); }
 
         function enviarFundoImagem(event) {
-            const file = event.target.files[0]; if(!file) return;
-            const reader = new FileReader();
+            const file = event.target.files[0]; if(!file) return; const reader = new FileReader();
             reader.onload = function(e) {
                 const img = new Image();
                 img.onload = function() {
@@ -284,20 +282,9 @@
             reader.readAsDataURL(file);
         }
 
-        // 🧠 ENVIADOR DE COMANDOS DIRETOS
         function enviarComando(action, value = null) { localStorage.setItem('bombaCommand', JSON.stringify({ ts: Date.now(), action: action, value: value })); }
-
-        function mudarEcra(modo) {
-            document.querySelectorAll('.btn-modo').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('btn_' + modo).classList.add('active');
-            enviarComando('display_mode', modo);
-        }
-
-        function mudarPeriodoRanking() {
-            enviarComando('display_periodo', document.getElementById('ranking_periodo').value);
-            localStorage.setItem('bombaDisplayPeriodo', document.getElementById('ranking_periodo').value);
-        }
-
+        function mudarEcra(modo) { document.querySelectorAll('.btn-modo').forEach(btn => btn.classList.remove('active')); document.getElementById('btn_' + modo).classList.add('active'); enviarComando('display_mode', modo); }
+        function mudarPeriodoRanking() { enviarComando('display_periodo', document.getElementById('ranking_periodo').value); localStorage.setItem('bombaDisplayPeriodo', document.getElementById('ranking_periodo').value); }
         function limparRankingDia() { if(confirm("TEM CERTEZA que deseja apagar todos os pontos de HOJE?")) enviarComando('limpar_diario'); }
 
         function renderizarListaRoda(jogadores, dados) {
@@ -326,36 +313,22 @@
             });
         }
 
-        function filtrarListas() {
-            let f = document.getElementById('filtro_jogadores').value.toUpperCase();
-            document.querySelectorAll('.caixa-lista .player-item').forEach(item => { item.style.display = item.querySelector('span').innerText.toUpperCase().includes(f) ? "flex" : "none"; });
-        }
-
+        function filtrarListas() { let f = document.getElementById('filtro_jogadores').value.toUpperCase(); document.querySelectorAll('.caixa-lista .player-item').forEach(item => { item.style.display = item.querySelector('span').innerText.toUpperCase().includes(f) ? "flex" : "none"; }); }
         function adicionarManual() { let input = document.getElementById('manual_nick'); if (input.value.trim()) { enviarComando('add_player', input.value.trim()); input.value = ''; } }
         function adicionarDirecto(nick) { enviarComando('add_player', nick); }
         function removerManual(nick) { enviarComando('remove_player', nick); }
 
-        // 💾 SALVA E MEMORIZA LOCALMENTE
         function salvarConfig(silencioso = false) {
             const config = {
-                modo_jogo: document.getElementById('modo_jogo').value,
-                tempo_rodada: parseInt(document.getElementById('tempo_rodada').value) || 30,
-                presente_entrada: document.getElementById('pres_entrada').value,
-                presente_tempo: document.getElementById('pres_tempo').value,
-                presente_pular: document.getElementById('pres_pular').value,
-                presente_menos_tempo: document.getElementById('pres_menos_tempo').value,
-                presente_kick: document.getElementById('pres_kick').value,
-                presente_reviver: document.getElementById('pres_reviver').value,
-                presente_colete: document.getElementById('pres_colete').value,
-                entrar_por_join: document.getElementById('entrar_join').checked,
-                taps_entrada: parseInt(document.getElementById('taps_entrada').value) || 0,
-                volume_explosao: (parseInt(document.getElementById('volume_explosao').value) || 8) / 100.0,
+                modo_jogo: document.getElementById('modo_jogo').value, tempo_rodada: parseInt(document.getElementById('tempo_rodada').value) || 30,
+                presente_entrada: document.getElementById('pres_entrada').value, presente_tempo: document.getElementById('pres_tempo').value,
+                presente_pular: document.getElementById('pres_pular').value, presente_menos_tempo: document.getElementById('pres_menos_tempo').value,
+                presente_kick: document.getElementById('pres_kick').value, presente_reviver: document.getElementById('pres_reviver').value,
+                presente_colete: document.getElementById('pres_colete').value, entrar_por_join: document.getElementById('entrar_join').checked,
+                taps_entrada: parseInt(document.getElementById('taps_entrada').value) || 0, volume_explosao: (parseInt(document.getElementById('volume_explosao').value) || 8) / 100.0,
                 bg_type: currentBgType, bg_value: currentBgValue
             };
-
-            let cfgStr = JSON.stringify(config);
-            localStorage.setItem('bombaConfig', cfgStr);
-            lastCfgStr = cfgStr; // Grava em memória para o painel saber que foi ele que fez a alteração
+            let cfgStr = JSON.stringify(config); localStorage.setItem('bombaConfig', cfgStr); lastCfgStr = cfgStr;
             enviarComando('update_bg');
             if (!silencioso) alert("Configurações salvas com sucesso!");
         }
@@ -367,34 +340,23 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyB2LNWktWEwYLuZxwr8oc9NpcjFz3GU5qc",
-            authDomain: "authrdm-a82a6.firebaseapp.com",
-            databaseURL: "https://authrdm-a82a6-default-rtdb.firebaseio.com",
-            projectId: "authrdm-a82a6"
-        };
+        const firebaseConfig = { apiKey: "AIzaSyB2LNWktWEwYLuZxwr8oc9NpcjFz3GU5qc", authDomain: "authrdm-a82a6.firebaseapp.com", databaseURL: "https://authrdm-a82a6-default-rtdb.firebaseio.com", projectId: "authrdm-a82a6" };
+        const app = initializeApp(firebaseConfig); const db = getDatabase(app);
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-
-        // Pega o dono do painel logado no site
-        const rdmUser = localStorage.getItem('rdm_user_tiktok') || localStorage.getItem('rdm_user') || "visitante";
-
-        // 1. Intercepta o botão "Salvar Configurações" e chuta pra Nuvem
+        // Intercepta e atira para a nuvem (Dentro da pasta do usuário)
         const originalSalvar = window.salvarConfig;
         window.salvarConfig = function(silencioso = false) {
-            originalSalvar(silencioso); // Faz o trabalho normal
+            originalSalvar(silencioso);
+            const rdmUser = localStorage.getItem('rdm_user_tiktok') || localStorage.getItem('rdm_user') || "visitante";
             let configStr = localStorage.getItem('bombaConfig');
-            if(configStr) {
-                set(ref(db, `controle_remoto/${rdmUser}/bomba_config`), JSON.parse(configStr));
-            }
+            if(configStr) set(ref(db, `usuarios/${rdmUser}/controle_remoto/bomba_config`), JSON.parse(configStr));
         };
 
-        // 2. Intercepta os botões do painel (Iniciar Jogo, Telas) e chuta pra Nuvem
         const originalEnviar = window.enviarComando;
         window.enviarComando = function(action, value = null) {
-            originalEnviar(action, value); // Faz o trabalho normal
-            set(ref(db, `controle_remoto/${rdmUser}/bomba_comando`), { ts: Date.now(), action: action, value: value });
+            originalEnviar(action, value);
+            const rdmUser = localStorage.getItem('rdm_user_tiktok') || localStorage.getItem('rdm_user') || "visitante";
+            set(ref(db, `usuarios/${rdmUser}/controle_remoto/bomba_comando`), { ts: Date.now(), action: action, value: value });
         };
     </script>
 </body>
