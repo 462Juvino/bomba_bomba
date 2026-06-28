@@ -109,7 +109,8 @@
     </div>
 
     <div id="game-view">
-        <div id="game-zoom-area"> <div class="aguardando" id="msg-aguardando">Aguardando jogadores... Envie um presente para entrar!</div>
+        <div id="game-zoom-area">
+            <div class="aguardando" id="msg-aguardando" style="top: 25%;">Aguardando jogadores... Envie um presente para entrar!</div>
 
             <svg class="roda-container" id="svg-seta" style="z-index: 1;">
                 <defs>
@@ -978,13 +979,17 @@
 
                 wsTikfinity.onclose = () => { wsTikfinity = null; };
             } else if (wsTikfinity.readyState === WebSocket.OPEN) {
-                // Se já estiver rodando pelo TikFinity, garante que a Nuvem fique desligada
                 if (wsNuvem) { wsNuvem.close(); wsNuvem = null; conexaoNuvemEstabelecida = false; }
             }
         }
 
-        // A antena procura sinais a cada 2 segundos!
-        setInterval(verificarEConectar, 2000);
+        // 🧠 DETECTOR DE OBS/STUDIO: Se tiver '?u=' no link, força a NUVEM direto!
+        const isInStudio = new URLSearchParams(window.location.search).has('u');
+        if (isInStudio) {
+            setInterval(conectarNuvem, 2000); // Força conexão apenas na Torre Render
+        } else {
+            setInterval(verificarEConectar, 2000); // Tenta local primeiro (Chrome normal)
+        }
     </script>
 
     <script type="module">
