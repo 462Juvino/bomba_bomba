@@ -362,5 +362,40 @@
 
         function iniciarJogo() { enviarComando('start_game'); }
     </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB2LNWktWEwYLuZxwr8oc9NpcjFz3GU5qc",
+            authDomain: "authrdm-a82a6.firebaseapp.com",
+            databaseURL: "https://authrdm-a82a6-default-rtdb.firebaseio.com",
+            projectId: "authrdm-a82a6"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Pega o dono do painel logado no site
+        const rdmUser = localStorage.getItem('rdm_user_tiktok') || localStorage.getItem('rdm_user') || "visitante";
+
+        // 1. Intercepta o botão "Salvar Configurações" e chuta pra Nuvem
+        const originalSalvar = window.salvarConfig;
+        window.salvarConfig = function(silencioso = false) {
+            originalSalvar(silencioso); // Faz o trabalho normal
+            let configStr = localStorage.getItem('bombaConfig');
+            if(configStr) {
+                set(ref(db, `controle_remoto/${rdmUser}/bomba_config`), JSON.parse(configStr));
+            }
+        };
+
+        // 2. Intercepta os botões do painel (Iniciar Jogo, Telas) e chuta pra Nuvem
+        const originalEnviar = window.enviarComando;
+        window.enviarComando = function(action, value = null) {
+            originalEnviar(action, value); // Faz o trabalho normal
+            set(ref(db, `controle_remoto/${rdmUser}/bomba_comando`), { ts: Date.now(), action: action, value: value });
+        };
+    </script>
 </body>
 </html>
