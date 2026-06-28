@@ -102,12 +102,22 @@
     </fieldset>
 
     <fieldset>
+        <legend>🔗 Link para OBS / TikTok Live Studio</legend>
+        <p style="font-size: 0.85rem; color: #ccc; margin-top: 0; margin-bottom: 5px;">Copie o link abaixo e cole no navegador do seu programa de live. Ele já contém a sua licença VIP!</p>
+        <div class="flex-row">
+            <input type="text" id="obs-link" readonly style="margin-bottom: 0; color: #f39c12; font-weight: bold; background: #222;">
+            <button onclick="copiarLinkOBS()" style="background: #3498db; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; font-weight: bold;">📋 COPIAR</button>
+        </div>
+    </fieldset>
+
+    <fieldset>
         <legend>Visuais e Áudio</legend>
         <div class="radio-group">
-            <label><input type="radio" name="bg_type" value="color" checked onchange="mudarFundoTipo()"> Cor Sólida</label>
+            <label><input type="radio" name="bg_type" value="transparent" checked onchange="mudarFundoTipo()"> Transparente (Padrão)</label>
+            <label><input type="radio" name="bg_type" value="color" onchange="mudarFundoTipo()"> Cor Sólida</label>
             <label><input type="radio" name="bg_type" value="image" onchange="mudarFundoTipo()"> Imagem</label>
         </div>
-        <div id="div_bg_color">
+        <div id="div_bg_color" style="display: none;">
             <input type="color" id="bg_color" value="#1a1a24" style="width: 100%; height: 40px; padding: 0; cursor: pointer;" onchange="enviarFundoCor()">
         </div>
         <div id="div_bg_image" style="display: none;">
@@ -148,18 +158,18 @@
         <legend>Sistema de Presentes</legend>
         <div style="color: #2ed573; margin-bottom: 5px;">▲ Vantagens / Herói</div>
         <div class="flex-row">
-            <div class="flex-col"><label>+10 Segundos:</label><input type="text" id="pres_tempo" value="Relogio"></div>
-            <div class="flex-col"><label>Pular Turno:</label><input type="text" id="pres_pular" value="Aviao"></div>
+            <div class="flex-col"><label>+10 Segundos:</label><input type="text" id="pres_tempo" value="Mini Dino"></div>
+            <div class="flex-col"><label>Pular Turno:</label><input type="text" id="pres_pular" value="Perfume"></div>
         </div>
         <div style="color: #ff4757; margin-top: 10px; margin-bottom: 5px;">▼ Sabotagem / Vilão</div>
         <div class="flex-row">
-            <div class="flex-col"><label>-5 Segundos:</label><input type="text" id="pres_menos_tempo" value="Pimenta"></div>
-            <div class="flex-col"><label>Eliminar (Kick):</label><input type="text" id="pres_kick" value="Brabo"></div>
+            <div class="flex-col"><label>-5 Segundos:</label><input type="text" id="pres_menos_tempo" value="Coração"></div>
+            <div class="flex-col"><label>Eliminar (Kick):</label><input type="text" id="pres_kick" value="Rosquinha"></div>
         </div>
         <div style="color: #f39c12; margin-top: 10px; margin-bottom: 5px;">★ Retorno / Herói Supremo</div>
         <div class="flex-row">
-            <div class="flex-col"><label>Reviver (Ticket):</label><input type="text" id="pres_reviver" value="Coracao"></div>
-            <div class="flex-col"><label>Colete (Defesa):</label><input type="text" id="pres_colete" value="Escudo"></div>
+            <div class="flex-col"><label>Reviver (Ticket):</label><input type="text" id="pres_reviver" value="Capybara"></div>
+            <div class="flex-col"><label>Colete (Defesa):</label><input type="text" id="pres_colete" value="Colar Da Amizade"></div>
         </div>
     </fieldset>
 
@@ -167,142 +177,190 @@
     <button class="btn-start" onclick="iniciarJogo()">INICIAR PARTIDA</button>
 
     <script>
-        let currentBgType = 'color'; let currentBgValue = '#1a1a24';
+        let currentBgType = 'transparent';
+        let currentBgValue = 'transparent';
+        let lastCfgStr = ""; // Memória da última configuração
 
-        function puxarMemoria() {
-            let cfgStr = localStorage.getItem('bombaConfig');
-            if (cfgStr) {
-                let cfg = JSON.parse(cfgStr);
-                document.getElementById('tempo_rodada').value = cfg.tempo_rodada || 30;
-                document.getElementById('pres_entrada').value = cfg.presente_entrada || "Rosa";
-                document.getElementById('pres_tempo').value = cfg.presente_tempo || "Relogio";
-                document.getElementById('pres_pular').value = cfg.presente_pular || "Aviao";
-                document.getElementById('pres_menos_tempo').value = cfg.presente_menos_tempo || "Pimenta";
-                document.getElementById('pres_kick').value = cfg.presente_kick || "Brabo";
-                document.getElementById('pres_reviver').value = cfg.presente_reviver || "Coracao";
-                document.getElementById('pres_colete').value = cfg.presente_colete || "Escudo";
-                document.getElementById('taps_entrada').value = cfg.taps_entrada || 0;
-                document.getElementById('entrar_join').checked = cfg.entrar_por_join || false;
-                document.getElementById('modo_jogo').value = cfg.modo_jogo || "silabas";
-                const vol = Math.round((cfg.volume_explosao || 0.08) * 100);
-                document.getElementById('volume_explosao').value = vol; document.getElementById('vol_val').innerText = vol + '%';
-                currentBgType = cfg.bg_type || 'color'; currentBgValue = cfg.bg_value || '#1a1a24';
-                document.querySelector(`input[name="bg_type"][value="${currentBgType}"]`).checked = true;
-                if(currentBgType === 'color') { document.getElementById('bg_color').value = currentBgValue; document.getElementById('div_bg_color').style.display = 'block'; document.getElementById('div_bg_image').style.display = 'none'; }
-                else { document.getElementById('div_bg_color').style.display = 'none'; document.getElementById('div_bg_image').style.display = 'block'; }
-            }
-            let rCfg = localStorage.getItem('bombaDisplayPeriodo'); if(rCfg) document.getElementById('ranking_periodo').value = rCfg;
+        // 🔗 GERA O LINK AUTOMÁTICO PARA O OBS
+        function atualizarLinkOBS() {
+            let user = localStorage.getItem('rdm_user_tiktok') || localStorage.getItem('rdm_user') || "SEU_NICK";
+            let baseURL = window.location.href.replace('Painel_do_Host.html', 'index.html').split('?')[0];
+            document.getElementById('obs-link').value = `${baseURL}?u=${user}&p=pro`;
         }
-        puxarMemoria();
+        atualizarLinkOBS();
 
-        function salvarConfig(silencioso = false) {
-            // Puxa o @ direto da conta logada na RDM Studio (Priorizando o formato com Ponto)
-            let rdmUser = localStorage.getItem('rdm_user_tiktok') || localStorage.getItem('rdm_user') || "";
+        function copiarLinkOBS() {
+            let input = document.getElementById('obs-link');
+            input.select();
+            document.execCommand("copy");
+            alert("✅ Link copiado! Pode colar no TikTok Live Studio ou OBS.");
+        }
 
-            const config = {
-                tiktok_user: rdmUser,
-                modo_jogo: document.getElementById('modo_jogo').value, tempo_rodada: parseInt(document.getElementById('tempo_rodada').value),
-                presente_entrada: document.getElementById('pres_entrada').value, presente_tempo: document.getElementById('pres_tempo').value,
-                presente_pular: document.getElementById('pres_pular').value, presente_menos_tempo: document.getElementById('pres_menos_tempo').value,
-                presente_kick: document.getElementById('pres_kick').value, presente_reviver: document.getElementById('pres_reviver').value,
-                presente_colete: document.getElementById('pres_colete').value, entrar_por_join: document.getElementById('entrar_join').checked,
-                taps_entrada: parseInt(document.getElementById('taps_entrada').value) || 0, volume_explosao: parseInt(document.getElementById('volume_explosao').value) / 100.0,
-                bg_type: currentBgType, bg_value: currentBgValue
-            };
-            try {
-                localStorage.setItem('bombaConfig', JSON.stringify(config));
-                envCmd({ action: 'update_bg' });
-                if(!silencioso) { let btn = document.querySelector('.btn-save'); btn.innerText = "✅ SALVO!"; setTimeout(() => { btn.innerText = "Salvar Configurações"; }, 1500); }
-            } catch(e) {
-                alert("⚠️ Erro: A imagem estourou o limite de memória do navegador! Tente usar uma foto com resolução menor.");
+        // 🔄 FUNÇÃO QUE ATUALIZA OS CAMPOS DO PAINEL VISUALMENTE
+        function carregarConfigInputs(cfgStr) {
+            lastCfgStr = cfgStr;
+            let cfg = JSON.parse(cfgStr);
+            document.getElementById('tempo_rodada').value = cfg.tempo_rodada || 30;
+            document.getElementById('pres_entrada').value = cfg.presente_entrada || "Rosa";
+            document.getElementById('pres_tempo').value = cfg.presente_tempo || "Relogio";
+            document.getElementById('pres_pular').value = cfg.presente_pular || "Aviao";
+            document.getElementById('pres_menos_tempo').value = cfg.presente_menos_tempo || "Pimenta";
+            document.getElementById('pres_kick').value = cfg.presente_kick || "Brabo";
+            document.getElementById('pres_reviver').value = cfg.presente_reviver || "Coracao";
+            document.getElementById('pres_colete').value = cfg.presente_colete || "Escudo";
+            document.getElementById('taps_entrada').value = cfg.taps_entrada || 0;
+            document.getElementById('entrar_join').checked = cfg.entrar_por_join || false;
+            document.getElementById('modo_jogo').value = cfg.modo_jogo || "silabas";
+
+            const vol = Math.round((cfg.volume_explosao || 0.08) * 100);
+            document.getElementById('volume_explosao').value = vol;
+            document.getElementById('vol_val').innerText = vol + '%';
+
+            currentBgType = cfg.bg_type || 'transparent';
+            currentBgValue = cfg.bg_value || 'transparent';
+
+            let radio = document.querySelector(`input[name="bg_type"][value="${currentBgType}"]`);
+            if(radio) radio.checked = true;
+
+            atualizarVisibilidadeFundo();
+            if(currentBgType === 'color' && currentBgValue !== 'transparent') document.getElementById('bg_color').value = currentBgValue;
+        }
+
+        // 📡 LÊ O ESTADO DO JOGO E SINCRONIZA AS ABAS A CADA SEGUNDO
+        setInterval(() => {
+            let stateStr = localStorage.getItem('bombaState');
+            if (stateStr) {
+                let state = JSON.parse(stateStr);
+                renderizarListaRoda(state.jogadores || [], state.dados_jogadores || {});
+                renderizarEspectadores(state.espectadores || {}, state.jogadores || []);
+                filtrarListas();
             }
+
+            let cfgStr = localStorage.getItem('bombaConfig');
+            if (cfgStr && cfgStr !== lastCfgStr) {
+                // 🛡️ ESCUDO: Só atualiza os campos se você NÃO estiver a digitar neles!
+                if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT') {
+                    carregarConfigInputs(cfgStr);
+                }
+            }
+        }, 1000);
+
+        // Ao abrir o painel pela primeira vez, força o carregamento imediato
+        window.onload = () => {
+            let initialCfg = localStorage.getItem('bombaConfig');
+            if (initialCfg) carregarConfigInputs(initialCfg);
+        };
+
+        function atualizarVisibilidadeFundo() {
+            document.getElementById('div_bg_color').style.display = currentBgType === 'color' ? 'block' : 'none';
+            document.getElementById('div_bg_image').style.display = currentBgType === 'image' ? 'block' : 'none';
+        }
+
+        function mudarFundoTipo() {
+            currentBgType = document.querySelector('input[name="bg_type"]:checked').value;
+            if (currentBgType === 'transparent') currentBgValue = 'transparent';
+            else if (currentBgType === 'color') currentBgValue = document.getElementById('bg_color').value || '#1a1a24';
+            atualizarVisibilidadeFundo();
+            salvarConfig(true);
         }
 
         function enviarFundoCor() { currentBgValue = document.getElementById('bg_color').value; salvarConfig(true); }
-        function mudarFundoTipo() {
-            currentBgType = document.querySelector('input[name="bg_type"]:checked').value;
-            document.getElementById('div_bg_color').style.display = currentBgType === 'color' ? 'block' : 'none';
-            document.getElementById('div_bg_image').style.display = currentBgType === 'image' ? 'block' : 'none';
-            salvarConfig(true);
-        }
-        function enviarFundoImagem(event) {
-            const file = event.target.files[0];
-            if(!file) return;
 
+        function enviarFundoImagem(event) {
+            const file = event.target.files[0]; if(!file) return;
             const reader = new FileReader();
             reader.onload = function(e) {
                 const img = new Image();
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
-                    // Trava a resolução no máximo de HD (1280x720) para a memória não explodir
-                    const MAX_WIDTH = 1280; const MAX_HEIGHT = 720;
                     let width = img.width; let height = img.height;
-
-                    if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } }
-                    else { if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; } }
-
+                    if (width > 1280) { height *= 1280 / width; width = 1280; }
                     canvas.width = width; canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-
-                    // Comprime para JPG super leve e manda pro jogo
-                    currentBgValue = canvas.toDataURL('image/jpeg', 0.6);
-                    salvarConfig(true);
+                    const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
+                    currentBgValue = canvas.toDataURL('image/jpeg', 0.6); salvarConfig(true);
                 };
                 img.src = e.target.result;
             };
             reader.readAsDataURL(file);
         }
 
-        function envCmd(cmd) { cmd.ts = Date.now(); localStorage.setItem('bombaCommand', JSON.stringify(cmd)); }
-        function mudarEcra(modo) { document.querySelectorAll('.btn-modo').forEach(b => b.classList.remove('active')); document.getElementById('btn_' + modo).classList.add('active'); envCmd({ action: 'display_mode', value: modo }); }
-        function mudarPeriodoRanking() { let p = document.getElementById('ranking_periodo').value; localStorage.setItem('bombaDisplayPeriodo', p); envCmd({ action: 'display_periodo', value: p }); }
-        function limparRankingDia() { if(confirm("TEM CERTEZA que deseja apagar todos os pontos de HOJE? Isso não afeta os outros filtros.")) { envCmd({ action: 'limpar_diario' }); } }
-        function iniciarJogo() { envCmd({ action: 'start_game' }); }
-        function adicionarManual() { let n = document.getElementById('manual_nick').value.trim(); if(n) { envCmd({ action: 'add_player', value: n }); document.getElementById('manual_nick').value = ''; } }
-        function adicionarDirecto(n) { envCmd({ action: 'add_player', value: n }); }
-        function removerManual(n) { envCmd({ action: 'remove_player', value: n }); }
+        // 🧠 ENVIADOR DE COMANDOS DIRETOS
+        function enviarComando(action, value = null) { localStorage.setItem('bombaCommand', JSON.stringify({ ts: Date.now(), action: action, value: value })); }
 
-        function filtrarListas() {
-            let filtro = document.getElementById('filtro_jogadores').value.toUpperCase();
-            document.querySelectorAll('.caixa-lista .player-item').forEach(item => {
-                let txt = item.querySelector('span').innerText.toUpperCase();
-                item.style.display = txt.includes(filtro) ? "flex" : "none";
+        function mudarEcra(modo) {
+            document.querySelectorAll('.btn-modo').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('btn_' + modo).classList.add('active');
+            enviarComando('display_mode', modo);
+        }
+
+        function mudarPeriodoRanking() {
+            enviarComando('display_periodo', document.getElementById('ranking_periodo').value);
+            localStorage.setItem('bombaDisplayPeriodo', document.getElementById('ranking_periodo').value);
+        }
+
+        function limparRankingDia() { if(confirm("TEM CERTEZA que deseja apagar todos os pontos de HOJE?")) enviarComando('limpar_diario'); }
+
+        function renderizarListaRoda(jogadores, dados) {
+            const container = document.getElementById('lista-jogadores-painel'); container.innerHTML = '';
+            if (jogadores.length === 0) { container.innerHTML = '<div style="text-align:center; color:#666; font-size:0.8rem; padding:10px;">Ninguém na plateia</div>'; return; }
+            jogadores.forEach(nick => {
+                let tk = dados[nick]?.tickets?.reviver || 0; let colete = dados[nick]?.colete || 0;
+                let tkStr = tk > 0 ? `<span style="color:gold;font-size:0.8rem;margin-left:5px;">🎟️x${tk}</span>` : '';
+                let colStr = colete > 0 ? `<span style="color:#3498db;font-size:0.8rem;margin-left:5px;">🛡️x${colete}</span>` : '';
+                const div = document.createElement('div'); div.className = 'player-item';
+                div.innerHTML = `<span>${nick} ${tkStr} ${colStr}</span> <span class="btn-remove" onclick="removerManual('${nick}')">X</span>`;
+                container.appendChild(div);
             });
         }
 
-        setInterval(() => {
-            let sStr = localStorage.getItem('bombaState');
-            if(sStr) {
-                let state = JSON.parse(sStr);
-                const cRoda = document.getElementById('lista-jogadores-painel');
-                cRoda.innerHTML = '';
-                if(state.jogadores && state.jogadores.length > 0) {
-                    state.jogadores.forEach(nick => {
-                        let tk = state.dados_jogadores?.[nick]?.tickets?.reviver || 0; let col = state.dados_jogadores?.[nick]?.colete || 0;
-                        let tkStr = tk>0 ? `<span style="color:gold;font-size:0.8rem;margin-left:5px;">🎟️x${tk}</span>` : '';
-                        let colStr = col>0 ? `<span style="color:#3498db;font-size:0.8rem;margin-left:5px;">🛡️x${col}</span>` : '';
-                        const div = document.createElement('div'); div.className = 'player-item';
-                        div.innerHTML = `<span>${nick} ${tkStr} ${colStr}</span> <span class="btn-remove" onclick="removerManual('${nick}')">X</span>`;
-                        cRoda.appendChild(div);
-                    });
-                } else cRoda.innerHTML = '<div style="text-align:center; color:#666; font-size:0.8rem; padding:10px;">Ninguém na roda</div>';
-
-                const cEsp = document.getElementById('lista-espectadores');
-                cEsp.innerHTML = '';
-                if(state.espectadores) {
-                    let count = 0;
-                    Object.keys(state.espectadores).forEach(nick => {
-                        if(state.jogadores && state.jogadores.includes(nick)) return; count++;
-                        const div = document.createElement('div'); div.className = 'player-item';
-                        div.innerHTML = `<span><img src="${state.espectadores[nick]}" style="width:15px; border-radius:50%; vertical-align:middle; margin-right:5px;">${nick}</span> <span class="btn-add" onclick="adicionarDirecto('${nick}')">[+]</span>`;
-                        cEsp.appendChild(div);
-                    });
-                    if(count===0) cEsp.innerHTML = '<div style="text-align:center; color:#666; font-size:0.8rem; padding:10px;">Nenhuma interação ainda</div>';
+        function renderizarEspectadores(espectadores, jogadores_roda) {
+            const container = document.getElementById('lista-espectadores'); container.innerHTML = '';
+            const chaves = Object.keys(espectadores);
+            if (chaves.length === 0) { container.innerHTML = '<div style="text-align:center; color:#666; font-size:0.8rem; padding:10px;">Nenhuma interação ainda</div>'; return; }
+            chaves.forEach(nick => {
+                if (!jogadores_roda.includes(nick)) {
+                    let div = document.createElement('div'); div.className = 'player-item';
+                    div.innerHTML = `<span><img src="${espectadores[nick]}" style="width:15px; border-radius:50%; vertical-align:middle; margin-right:5px;">${nick}</span> <span class="btn-add" onclick="adicionarDirecto('${nick}')">[+]</span>`;
+                    container.appendChild(div);
                 }
-                filtrarListas();
-            }
-        }, 1000);
+            });
+        }
+
+        function filtrarListas() {
+            let f = document.getElementById('filtro_jogadores').value.toUpperCase();
+            document.querySelectorAll('.caixa-lista .player-item').forEach(item => { item.style.display = item.querySelector('span').innerText.toUpperCase().includes(f) ? "flex" : "none"; });
+        }
+
+        function adicionarManual() { let input = document.getElementById('manual_nick'); if (input.value.trim()) { enviarComando('add_player', input.value.trim()); input.value = ''; } }
+        function adicionarDirecto(nick) { enviarComando('add_player', nick); }
+        function removerManual(nick) { enviarComando('remove_player', nick); }
+
+        // 💾 SALVA E MEMORIZA LOCALMENTE
+        function salvarConfig(silencioso = false) {
+            const config = {
+                modo_jogo: document.getElementById('modo_jogo').value,
+                tempo_rodada: parseInt(document.getElementById('tempo_rodada').value) || 30,
+                presente_entrada: document.getElementById('pres_entrada').value,
+                presente_tempo: document.getElementById('pres_tempo').value,
+                presente_pular: document.getElementById('pres_pular').value,
+                presente_menos_tempo: document.getElementById('pres_menos_tempo').value,
+                presente_kick: document.getElementById('pres_kick').value,
+                presente_reviver: document.getElementById('pres_reviver').value,
+                presente_colete: document.getElementById('pres_colete').value,
+                entrar_por_join: document.getElementById('entrar_join').checked,
+                taps_entrada: parseInt(document.getElementById('taps_entrada').value) || 0,
+                volume_explosao: (parseInt(document.getElementById('volume_explosao').value) || 8) / 100.0,
+                bg_type: currentBgType, bg_value: currentBgValue
+            };
+
+            let cfgStr = JSON.stringify(config);
+            localStorage.setItem('bombaConfig', cfgStr);
+            lastCfgStr = cfgStr; // Grava em memória para o painel saber que foi ele que fez a alteração
+            enviarComando('update_bg');
+            if (!silencioso) alert("Configurações salvas com sucesso!");
+        }
+
+        function iniciarJogo() { enviarComando('start_game'); }
     </script>
 </body>
 </html>

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <title>BomBa BomBa - Tela</title>
     <style>
-        body { background-color: #1a1a24; background-size: cover; background-position: center center; background-repeat: no-repeat; height: 100vh; width: 100vw; overflow: hidden; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; transition: background 0.5s ease;}
+        body { background-color: transparent; background-size: cover; background-position: center center; background-repeat: no-repeat; height: 100vh; width: 100vw; overflow: hidden; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; transition: background 0.5s ease;}
 
         .aguardando { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #fff; font-size: 2rem; font-weight: bold; text-shadow: 0 0 10px black; z-index: 10;}
 
@@ -156,8 +156,14 @@
     </div>
 
     <script>
+        // 🔗 INTEGRAÇÃO OBS / TIKTOK LIVE STUDIO: Lê os dados do link se existirem
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('u') && urlParams.has('p')) {
+            localStorage.setItem('rdm_user', urlParams.get('u'));
+            localStorage.setItem('rdm_perfil', urlParams.get('p'));
+        }
+
         // 🛡️ TRAVA RDM STUDIO: Verifica a licença no momento que o jogo abre
-        // Puxa primeiro a versão com PONTO, se não achar, usa a antiga por segurança
         window.rdmUser = localStorage.getItem('rdm_user_tiktok') || localStorage.getItem('rdm_user');
         window.rdmPerfil = localStorage.getItem('rdm_perfil');
 
@@ -649,7 +655,9 @@
 
         function atualizarTela() {
             if (jogo.config.volume_explosao !== undefined) audioExplosaoMp3.volume = jogo.config.volume_explosao;
-            if (jogo.config.bg_type === 'color') {
+            if (jogo.config.bg_type === 'transparent') {
+                document.body.style.backgroundImage = 'none'; document.body.style.backgroundColor = 'transparent';
+            } else if (jogo.config.bg_type === 'color') {
                 document.body.style.backgroundImage = 'none'; document.body.style.backgroundColor = jogo.config.bg_value;
             } else if (jogo.config.bg_type === 'image') {
                 document.body.style.backgroundColor = 'transparent'; document.body.style.backgroundImage = `url('${jogo.config.bg_value}')`;
