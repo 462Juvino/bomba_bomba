@@ -125,6 +125,9 @@
         </div>
         <label style="display: block; margin-top: 10px;">Volume da Explosão: <span id="vol_val" style="color: #f39c12;">8%</span></label>
         <input type="range" id="volume_explosao" min="0" max="100" value="8" onchange="salvarConfig(true)" oninput="document.getElementById('vol_val').innerText = this.value + '%'">
+
+        <label style="display: block; margin-top: 10px;">Zoom Remoto do Jogo: <span id="zoom_val" style="color: #f39c12;">100%</span></label>
+        <input type="range" id="zoom_jogo" min="40" max="200" value="100" onchange="salvarConfig(true)" oninput="document.getElementById('zoom_val').innerText = this.value + '%'">
     </fieldset>
 
     <fieldset>
@@ -181,7 +184,6 @@
         let currentBgValue = 'transparent';
         let lastCfgStr = "";
 
-        // 🛡️ VERIFICA A LICENÇA DO RDM STUDIO
         function verificarStatusRDM() {
             let user = localStorage.getItem('rdm_user_tiktok') || localStorage.getItem('rdm_user');
             let perfil = localStorage.getItem('rdm_perfil');
@@ -228,6 +230,10 @@
             const vol = Math.round((cfg.volume_explosao || 0.08) * 100);
             document.getElementById('volume_explosao').value = vol;
             document.getElementById('vol_val').innerText = vol + '%';
+
+            const zoomPercent = Math.round((cfg.zoom_level || 1.0) * 100);
+            document.getElementById('zoom_jogo').value = zoomPercent;
+            document.getElementById('zoom_val').innerText = zoomPercent + '%';
 
             currentBgType = cfg.bg_type || 'transparent'; currentBgValue = cfg.bg_value || 'transparent';
             let radio = document.querySelector(`input[name="bg_type"][value="${currentBgType}"]`); if(radio) radio.checked = true;
@@ -326,6 +332,7 @@
                 presente_kick: document.getElementById('pres_kick').value, presente_reviver: document.getElementById('pres_reviver').value,
                 presente_colete: document.getElementById('pres_colete').value, entrar_por_join: document.getElementById('entrar_join').checked,
                 taps_entrada: parseInt(document.getElementById('taps_entrada').value) || 0, volume_explosao: (parseInt(document.getElementById('volume_explosao').value) || 8) / 100.0,
+                zoom_level: (parseInt(document.getElementById('zoom_jogo').value) || 100) / 100.0,
                 bg_type: currentBgType, bg_value: currentBgValue
             };
             let cfgStr = JSON.stringify(config); localStorage.setItem('bombaConfig', cfgStr); lastCfgStr = cfgStr;
@@ -357,6 +364,12 @@
             originalEnviar(action, value);
             const rdmUser = localStorage.getItem('rdm_user_tiktok') || localStorage.getItem('rdm_user') || "visitante";
             set(ref(db, `usuarios/${rdmUser}/controle_remoto/bomba_comando`), { ts: Date.now(), action: action, value: value });
+
+            // Se a ordem for zerar o dia, força o reset do nó de rankings no Firebase também!
+            if (action === 'limpar_diario') {
+                let rStr = localStorage.getItem('bombaRankings');
+                if (rStr) set(ref(db, `usuarios/${rdmUser}/controle_remoto/bomba_rankings`), JSON.parse(rStr));
+            }
         };
     </script>
 </body>

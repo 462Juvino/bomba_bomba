@@ -143,7 +143,7 @@
             </div>
         </div> </div>
 
-    <button onclick="document.getElementById('hud-janela-painel').style.display='flex'" style="position: absolute; top: 15px; left: 15px; z-index: 1500; background: #3498db; color: white; border: 2px solid #fff; padding: 10px 15px; font-weight: bold; border-radius: 5px; cursor: pointer; box-shadow: 0 0 10px rgba(52, 152, 219, 0.8);">⚙️ PAINEL</button>
+    <button onclick="document.getElementById('hud-janela-painel').style.display='flex'" style="position: absolute; top: 15px; left: 15px; z-index: 1500; background: #3498db; color: white; border: 2px solid #fff; padding: 10px 15px; font-weight: bold; border-radius: 5px; cursor: pointer; box-shadow: 0 0 10px rgba(52, 152, 219, 0.8); opacity: 0; transition: opacity 0.2s;" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0">⚙️ PAINEL</button>
 
     <div id="hud-janela-painel" style="position: absolute; top: 60px; left: 15px; width: calc(100vw - 30px); max-width: 450px; height: 85vh; background: rgba(13, 17, 23, 0.95); border: 2px solid #3498db; border-radius: 10px; z-index: 2000; display: none; flex-direction: column; overflow: hidden; box-shadow: 0 0 20px rgba(0,0,0,0.8);">
         <div style="background: #3498db; padding: 10px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 5px;">
@@ -660,8 +660,9 @@
                 document.body.style.backgroundImage = 'none'; document.body.style.backgroundColor = 'transparent';
             } else if (jogo.config.bg_type === 'color') {
                 document.body.style.backgroundImage = 'none'; document.body.style.backgroundColor = jogo.config.bg_value;
-            } else if (jogo.config.bg_type === 'image') {
-                document.body.style.backgroundColor = 'transparent'; document.body.style.backgroundImage = `url('${jogo.config.bg_value}')`;
+            if (jogo.config.zoom_level !== undefined) {
+                zoomLevel = jogo.config.zoom_level;
+                document.getElementById('game-zoom-area').style.transform = `scale(${zoomLevel})`;
             }
 
             if (document.getElementById('tela-vencedor').classList.contains('show')) return;
@@ -793,7 +794,7 @@
                         if(rankings) {
                             rankings.diario = {vitorias:{}, palavras:{}, heroi:{}, vilao:{}};
                             localStorage.setItem('bombaRankings', JSON.stringify(rankings));
-                            atualizarTela();
+                            if (typeof window.fbcPushRankings === "function") window.fbcPushRankings(rankings);
                         }
                     }
 
@@ -994,21 +995,20 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyB2LNWktWEwYLuZxwr8oc9NpcjFz3GU5qc",
-            authDomain: "authrdm-a82a6.firebaseapp.com",
-            databaseURL: "https://authrdm-a82a6-default-rtdb.firebaseio.com",
-            projectId: "authrdm-a82a6"
-        };
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+        const firebaseConfig = { apiKey: "AIzaSyB2LNWktWEwYLuZxwr8oc9NpcjFz3GU5qc", authDomain: "authrdm-a82a6.firebaseapp.com", databaseURL: "https://authrdm-a82a6-default-rtdb.firebaseio.com", projectId: "authrdm-a82a6" };
+        const app = initializeApp(firebaseConfig); const db = getDatabase(app);
 
         const urlParams = new URLSearchParams(window.location.search);
         const rdmUser = urlParams.get('u') || window.rdmUser || "visitante";
 
-        // Ouve o painel na Nuvem (Agora dentro da pasta do usuário)
+        // Canal de envio dos Rankings para o Firebase
+        window.fbcPushRankings = function(rankingsData) {
+            set(ref(db, `usuarios/${rdmUser}/controle_remoto/bomba_rankings`), rankingsData);
+        };
+
+        // Ouve a Nuvem para configurações visuais e zoom
         onValue(ref(db, `usuarios/${rdmUser}/controle_remoto/bomba_config`), (snapshot) => {
             if(snapshot.exists()) {
                 localStorage.setItem('bombaConfig', JSON.stringify(snapshot.val()));
@@ -1017,10 +1017,18 @@
             }
         });
 
-        // Ouve os botões de ação (ex: Iniciar Jogo)
+        // Ouve os botões de ação do Painel
         onValue(ref(db, `usuarios/${rdmUser}/controle_remoto/bomba_comando`), (snapshot) => {
             if(snapshot.exists()) {
                 localStorage.setItem('bombaCommand', JSON.stringify(snapshot.val()));
+            }
+        });
+
+        // Ouve atualizações de Rankings vindas de fora (ex: Limpar dados pelo Painel)
+        onValue(ref(db, `usuarios/${rdmUser}/controle_remoto/bomba_rankings`), (snapshot) => {
+            if(snapshot.exists()) {
+                localStorage.setItem('bombaRankings', JSON.stringify(snapshot.val()));
+                if (typeof window.atualizarTela === "function") window.atualizarTela();
             }
         });
     </script>
