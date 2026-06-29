@@ -652,6 +652,9 @@
                 rankings[periodo][categoria][nick] = (rankings[periodo][categoria][nick] || 0) + valor;
             });
             localStorage.setItem('bombaRankings', JSON.stringify(rankings));
+
+            // 📡 Avisa a Nuvem que os Rankings mudaram!
+            if (typeof window.fbcPushRankings === "function") window.fbcPushRankings(rankings);
         }
 
         function atualizarTela() {
