@@ -656,10 +656,15 @@
 
         function atualizarTela() {
             if (jogo.config.volume_explosao !== undefined) audioExplosaoMp3.volume = jogo.config.volume_explosao;
+
             if (jogo.config.bg_type === 'transparent') {
                 document.body.style.backgroundImage = 'none'; document.body.style.backgroundColor = 'transparent';
             } else if (jogo.config.bg_type === 'color') {
                 document.body.style.backgroundImage = 'none'; document.body.style.backgroundColor = jogo.config.bg_value;
+            } else if (jogo.config.bg_type === 'image') {
+                document.body.style.backgroundColor = 'transparent'; document.body.style.backgroundImage = `url('${jogo.config.bg_value}')`;
+            }
+
             if (jogo.config.zoom_level !== undefined) {
                 zoomLevel = jogo.config.zoom_level;
                 document.getElementById('game-zoom-area').style.transform = `scale(${zoomLevel})`;
