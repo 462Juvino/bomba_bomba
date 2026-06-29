@@ -992,13 +992,9 @@
             }
         }
 
-        // 🧠 DETECTOR DE OBS/STUDIO: Se tiver '?u=' no link, força a NUVEM direto!
-        const isInStudio = new URLSearchParams(window.location.search).has('u');
-        if (isInStudio) {
-            setInterval(conectarNuvem, 2000); // Força conexão apenas na Torre Render
-        } else {
-            setInterval(verificarEConectar, 2000); // Tenta local primeiro (Chrome normal)
-        }
+        // 📡 TENTA SEMPRE O TIKFINITY PRIMEIRO (Mesmo no OBS/TikTok Studio)
+        // Se o TikFinity falhar ou estiver fechado, ele pede socorro à Nuvem automaticamente!
+        setInterval(verificarEConectar, 2000);
     </script>
 
     <script type="module">
